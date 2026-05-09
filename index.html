@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimiseur Fiscal SASU — France</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e6e9ef;
+    --muted: #98a2b3;
+    --accent: #4f8cff;
+    --accent-2: #20c997;
+    --warn: #ffb020;
+    --bad: #ff6b6b;
+    --good: #2ecc71;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 22px 0 10px; }
+  h3 { font-size: 13px; margin: 0 0 8px; color: var(--text); }
+  .subtitle { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .field { margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input[type=number], select {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 14px; font-family: inherit;
+  }
+  input[type=number]:focus, select:focus { outline: none; border-color: var(--accent); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row > * { flex: 1; }
+  .slider-val { color: var(--accent); font-weight: 600; min-width: 56px; text-align: right; }
+  .toggle-group { display: flex; gap: 4px; background: var(--panel-2); border-radius: 6px; padding: 3px; }
+  .toggle-group button {
+    flex: 1; background: transparent; color: var(--muted); border: none;
+    padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: inherit;
+  }
+  .toggle-group button.active { background: var(--accent); color: white; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .results { grid-template-columns: 1fr; } }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .kpi .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .val { font-size: 22px; font-weight: 600; margin-top: 4px; }
+  .kpi .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .kpi.accent { border-color: var(--accent); }
+  .kpi.good .val { color: var(--good); }
+  .kpi.warn .val { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 600; border-top: 2px solid var(--border); border-bottom: none; padding-top: 10px; }
+  tr.subtotal td { color: var(--muted); }
+  tr.neg td.num { color: var(--bad); }
+  tr.pos td.num { color: var(--good); }
+  .waterfall { display: flex; flex-direction: column; gap: 4px; }
+  .wf-row { display: grid; grid-template-columns: 160px 1fr 110px; gap: 10px; align-items: center; font-size: 13px; }
+  .wf-row .bar { height: 22px; border-radius: 3px; position: relative; background: var(--panel-2); }
+  .wf-row .bar-fill { height: 100%; border-radius: 3px; }
+  .wf-row .lbl { color: var(--muted); }
+  .wf-row .amt { font-variant-numeric: tabular-nums; text-align: right; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 99px;
+    font-size: 11px; font-weight: 600; background: var(--panel-2); color: var(--muted);
+  }
+  .badge.ok { background: rgba(46,204,113,0.15); color: var(--good); }
+  .badge.warn { background: rgba(255,176,32,0.15); color: var(--warn); }
+  .footnote { color: var(--muted); font-size: 11px; margin-top: 16px; line-height: 1.6; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; }
+  details[open] summary { color: var(--text); }
+  .opt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+  .opt-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; cursor: pointer; transition: border-color 0.15s; }
+  .opt-card:hover { border-color: var(--accent); }
+  .opt-card.best { border-color: var(--accent-2); background: rgba(32,201,151,0.08); }
+  .opt-card .small { font-size: 11px; color: var(--muted); }
+  .opt-card .big { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Optimiseur Fiscal SASU</h1>
+  <p class="subtitle">
+    Simulation de la chaîne CA → IS → rémunération / dividendes / holding → revenu net du dirigeant.
+    Paramètres fiscaux 2025 (revenus 2024).
+    <span class="badge warn">Outil pédagogique — vérifier avec un expert-comptable</span>
+  </p>
+
+  <div class="grid">
+    <!-- ==================== INPUTS ==================== -->
+    <div class="panel">
+      <h2>Société</h2>
+      <div class="field">
+        <label>Chiffre d'affaires HT (€/an)</label>
+        <input type="number" id="revenue" value="200000" step="1000">
+      </div>
+      <div class="field">
+        <label>Charges d'exploitation hors rémunération (€/an)</label>
+        <input type="number" id="opex" value="15000" step="500">
+        <div class="footnote" style="margin-top:4px">Loyer, matériel, prestations, déplacements, comptable…</div>
+      </div>
+      <div class="field">
+        <label>CFE (€/an)</label>
+        <input type="number" id="cfe" value="800" step="100">
+      </div>
+
+      <h2>Rémunération du président</h2>
+      <div class="field">
+        <label>Salaire BRUT annuel (€)</label>
+        <input type="number" id="grossSalary" value="40000" step="500">
+        <div class="footnote" style="margin-top:4px">
+          Coût employeur ≈ brut × 1,42 — Net en poche ≈ brut × 0,78
+        </div>
+      </div>
+
+      <h2>Politique de distribution du résultat</h2>
+      <div class="field">
+        <label>Dividendes au président <span class="slider-val" id="divToOwnerVal">50%</span></label>
+        <input type="range" id="divToOwnerPct" min="0" max="100" value="50" step="5">
+      </div>
+      <div class="field">
+        <label>Dividendes vers la holding (mère-fille) <span class="slider-val" id="divToHoldingVal">50%</span></label>
+        <input type="range" id="divToHoldingPct" min="0" max="100" value="50" step="5">
+        <div class="footnote" style="margin-top:4px">
+          Le reste = bénéfice mis en réserve dans la SASU (non distribué).
+        </div>
+      </div>
+      <div class="field">
+        <label>Régime fiscal des dividendes</label>
+        <div class="toggle-group">
+          <button data-target="dividendOption" data-value="pfu" class="active">PFU 30%</button>
+          <button data-target="dividendOption" data-value="bareme">Barème + abattement 40%</button>
+        </div>
+      </div>
+
+      <h2>Situation familiale (foyer fiscal)</h2>
+      <div class="field">
+        <label>Statut</label>
+        <div class="toggle-group">
+          <button data-target="marital" data-value="single" class="active">Célibataire</button>
+          <button data-target="marital" data-value="married">Marié·e / PACS</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Enfants à charge</label>
+          <input type="number" id="children" value="0" min="0" max="10">
+        </div>
+        <div class="field">
+          <label>Autres revenus du foyer (€/an)</label>
+          <input type="number" id="otherIncome" value="0" step="1000">
+        </div>
+      </div>
+      <details>
+        <summary>Hypothèses de calcul (cliquer pour voir)</summary>
+        <div class="footnote">
+          • IS : 15% jusqu'à 42 500 € de bénéfice (taux PME : CA &lt; 10 M€, capital ≥ 75% détenu par personnes physiques), 25% au-delà.<br>
+          • Cotisations sociales SASU président (assimilé salarié) : ~42% patronales, ~22% salariales (simplification, varie avec PASS).<br>
+          • Salaire net imposable ≈ brut × 0,81 (CSG/CRDS non déductible réintégrée). Abattement 10% frais pro plafonné à 14 171 €.<br>
+          • PFU : 12,8% IR + 17,2% PS = 30%. Option barème : 17,2% PS sur brut + IR sur 60% (abattement 40%) ; CSG 6,8% déductible reportée approximée.<br>
+          • Régime mère-fille : 95% exonérés, quote-part de 5% taxée à 25% IS = 1,25% effectif.<br>
+          • Quotient familial : +0,5 part par enfant (2 premiers), +1 au-delà ; plafonnement 1 791 €/demi-part.<br>
+          • Tranches IR 2025 (revenus 2024) : 0/11 497, 11%/29 315, 30%/83 823, 41%/180 294, 45%.
+        </div>
+      </details>
+    </div>
+
+    <!-- ==================== RESULTS ==================== -->
+    <div>
+      <div class="results">
+        <div class="kpi accent">
+          <div class="lbl">Net en poche du dirigeant</div>
+          <div class="val" id="kpi-owner-net">—</div>
+          <div class="sub" id="kpi-owner-net-sub">salaire net après IR + dividendes nets</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Capital placé en holding</div>
+          <div class="val" id="kpi-holding">—</div>
+          <div class="sub">après IS mère-fille (1,25%)</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Total prélèvements</div>
+          <div class="val" id="kpi-total-tax">—</div>
+          <div class="sub" id="kpi-pressure">taux global —</div>
+        </div>
+        <div class="kpi good">
+          <div class="lbl">Valeur totale créée pour le dirigeant</div>
+          <div class="val" id="kpi-total-value">—</div>
+          <div class="sub">net en poche + capital holding + réserves</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Cascade fiscale — du chiffre d'affaires au net</h3>
+        <div class="waterfall" id="waterfall"></div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Détail société (compte de résultat simplifié)</h3>
+        <table id="company-table"></table>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Détail dirigeant (revenu personnel)</h3>
+        <table id="personal-table"></table>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Optimisation — quel est le meilleur arbitrage salaire / dividendes ?</h3>
+        <p class="footnote" style="margin-top:0">
+          Pour le CA et les charges saisis, scan du salaire brut optimal afin de maximiser la valeur totale créée
+          (net en poche + capital en holding). Les dividendes restants vont 100% selon votre répartition courante.
+        </p>
+        <div class="opt-grid" id="optimization"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footnote">
+    Modèle simplifié à visée pédagogique. Les cotisations sociales du président de SASU
+    varient selon le niveau de salaire (tranches PASS, AGIRC-ARRCO, prévoyance) ;
+    les taux 42% / 22% sont des moyennes courantes. La CSG déductible sur dividendes
+    (option barème) est reportée sur l'IR de l'année suivante — simplifiée ici.
+    Vérifiez toujours avec un expert-comptable avant de prendre une décision.
+  </p>
+</div>
+
+<script>
+// ============================================================
+//  CONSTANTS — French tax parameters 2025 (revenus 2024)
+// ============================================================
+const PARAMS = {
+  // Corporate income tax
+  IS_REDUCED_RATE: 0.15,
+  IS_REDUCED_LIMIT: 42500,
+  IS_NORMAL_RATE: 0.25,
+
+  // Social charges on president's salary (assimilé salarié)
+  EMPLOYER_CHARGES_RATE: 0.42,    // ~42% du brut
+  EMPLOYEE_CHARGES_RATE: 0.22,    // ~22% du brut
+  // Net taxable salary = gross - cotisations déductibles + CSG/CRDS non déductible
+  // Approximation: ~0.81 × brut
+  NET_TAXABLE_SALARY_RATIO: 0.81,
+  PRO_ABATEMENT_RATE: 0.10,
+  PRO_ABATEMENT_CAP: 14171,
+  PRO_ABATEMENT_MIN: 495,
+
+  // Dividends
+  PFU_TOTAL: 0.30,
+  PFU_IR: 0.128,
+  PFU_PS: 0.172,
+  DIVIDEND_PS: 0.172,
+  DIVIDEND_BAREME_ABATEMENT: 0.40,
+  CSG_DEDUCTIBLE_DIVIDENDS: 0.068, // reportée - approximée
+
+  // Mère-fille (holding)
+  MERE_FILLE_QUOTE_PART: 0.05,
+  MERE_FILLE_EFFECTIVE: 0.05 * 0.25, // 1.25%
+
+  // Income tax brackets 2025 (per part)
+  IR_BRACKETS: [
+    { upTo: 11497,  rate: 0.00 },
+    { upTo: 29315,  rate: 0.11 },
+    { upTo: 83823,  rate: 0.30 },
+    { upTo: 180294, rate: 0.41 },
+    { upTo: Infinity, rate: 0.45 },
+  ],
+  QF_HALF_PART_CAP: 1791,
+};
+
+// ============================================================
+//  CORE TAX FUNCTIONS
+// ============================================================
+function computeIS(profit) {
+  if (profit <= 0) return 0;
+  if (profit <= PARAMS.IS_REDUCED_LIMIT) return profit * PARAMS.IS_REDUCED_RATE;
+  return PARAMS.IS_REDUCED_LIMIT * PARAMS.IS_REDUCED_RATE
+       + (profit - PARAMS.IS_REDUCED_LIMIT) * PARAMS.IS_NORMAL_RATE;
+}
+
+function computeIRBareme(taxablePerPart) {
+  if (taxablePerPart <= 0) return 0;
+  let tax = 0, prev = 0;
+  for (const b of PARAMS.IR_BRACKETS) {
+    if (taxablePerPart > prev) {
+      tax += (Math.min(taxablePerPart, b.upTo) - prev) * b.rate;
+    }
+    prev = b.upTo;
+    if (taxablePerPart <= prev) break;
+  }
+  return tax;
+}
+
+function familyParts(marital, children) {
+  let parts = marital === 'married' ? 2 : 1;
+  // Quotient familial: +0.5 each for first 2 children, +1 each beyond
+  if (children <= 2) parts += children * 0.5;
+  else parts += 1 + (children - 2) * 1.0;
+  return parts;
+}
+
+function computeIRWithCap(taxableIncome, marital, children) {
+  if (taxableIncome <= 0) return 0;
+  const partsAll = familyParts(marital, children);
+  const partsBase = marital === 'married' ? 2 : 1;
+  const irAll = computeIRBareme(taxableIncome / partsAll) * partsAll;
+  const irBase = computeIRBareme(taxableIncome / partsBase) * partsBase;
+  const halfPartsForChildren = (partsAll - partsBase) * 2;
+  const cap = halfPartsForChildren * PARAMS.QF_HALF_PART_CAP;
+  const reduction = irBase - irAll;
+  if (reduction > cap) return irBase - cap;
+  return irAll;
+}
+
+function applyProAbatement(grossTaxable) {
+  const ab = Math.min(
+    Math.max(grossTaxable * PARAMS.PRO_ABATEMENT_RATE, PARAMS.PRO_ABATEMENT_MIN),
+    PARAMS.PRO_ABATEMENT_CAP
+  );
+  return Math.max(0, grossTaxable - ab);
+}
+
+// ============================================================
+//  MAIN MODEL: full company → owner waterfall
+// ============================================================
+function calculate(input) {
+  const {
+    revenue, opex, cfe, grossSalary,
+    divToOwnerPct, divToHoldingPct,
+    dividendOption, marital, children, otherIncome,
+  } = input;
+
+  // ---- 1. Société ----
+  const employerCharges = grossSalary * PARAMS.EMPLOYER_CHARGES_RATE;
+  const employeeCharges = grossSalary * PARAMS.EMPLOYEE_CHARGES_RATE;
+  const totalSalaryCost = grossSalary + employerCharges;
+  const ebit = revenue - opex - cfe - totalSalaryCost;
+  const is = computeIS(Math.max(0, ebit));
+  const profitAfterIS = ebit - is;
+  const distributable = Math.max(0, profitAfterIS);
+
+  // ---- 2. Distribution ----
+  const ownerPctRaw  = Math.max(0, Math.min(100, divToOwnerPct));
+  const holdingPctRaw = Math.max(0, Math.min(100, divToHoldingPct));
+  // If sum > 100, normalize proportionally
+  let ownerPct = ownerPctRaw, holdingPct = holdingPctRaw;
+  if (ownerPct + holdingPct > 100) {
+    const scale = 100 / (ownerPct + holdingPct);
+    ownerPct *= scale; holdingPct *= scale;
+  }
+  const reservesPct = 100 - ownerPct - holdingPct;
+  const divToOwnerGross   = distributable * ownerPct / 100;
+  const divToHoldingGross = distributable * holdingPct / 100;
+  const reserves          = distributable * reservesPct / 100;
+
+  // Holding (mère-fille)
+  const holdingTax = divToHoldingGross * PARAMS.MERE_FILLE_EFFECTIVE;
+  const holdingNet = divToHoldingGross - holdingTax;
+
+  // ---- 3. Salaire personnel ----
+  const netSalaryCash    = grossSalary - employeeCharges;            // approx
+  const netSalaryTaxable = grossSalary * PARAMS.NET_TAXABLE_SALARY_RATIO;
+  const salaryAfterAbatement = applyProAbatement(netSalaryTaxable);
+
+  // ---- 4. Dividendes — fiscalité ----
+  let dividendIRPart = 0;       // part imposée au barème (si option barème)
+  let dividendPS     = 0;
+  let dividendFlatTax = 0;
+  if (dividendOption === 'pfu') {
+    dividendFlatTax = divToOwnerGross * PARAMS.PFU_TOTAL;
+  } else {
+    dividendPS    = divToOwnerGross * PARAMS.DIVIDEND_PS;
+    dividendIRPart = divToOwnerGross * (1 - PARAMS.DIVIDEND_BAREME_ABATEMENT);
+  }
+
+  // ---- 5. IR du foyer ----
+  // Base barème = salaire après abattement + dividendes (si barème) + autres revenus
+  const irBase = salaryAfterAbatement + dividendIRPart + otherIncome;
+  const ir = computeIRWithCap(irBase, marital, children);
+
+  // Allocation IR aux différentes sources (proportionnelle)
+  let irOnSalary = 0, irOnDividends = 0, irOnOther = 0;
+  if (irBase > 0) {
+    irOnSalary    = ir * salaryAfterAbatement / irBase;
+    irOnDividends = ir * dividendIRPart / irBase;
+    irOnOther     = ir * otherIncome / irBase;
+  }
+
+  // ---- 6. Net du dirigeant ----
+  const netFromSalary    = netSalaryCash - irOnSalary;
+  const dividendNetCash  = dividendOption === 'pfu'
+    ? divToOwnerGross - dividendFlatTax
+    : divToOwnerGross - dividendPS - irOnDividends;
+  const ownerNet = netFromSalary + dividendNetCash;
+
+  // ---- 7. Totaux ----
+  const totalSocial = employerCharges + employeeCharges + dividendPS;
+  const totalIR     = ir;  // includes salary + dividend (barème) parts
+  const totalDividendTax = dividendOption === 'pfu' ? dividendFlatTax : (dividendPS + irOnDividends);
+  const totalCorpTax = is + holdingTax;
+  const totalTaxAndCharges = totalCorpTax + totalSocial + (dividendOption === 'pfu' ? dividendFlatTax : (dividendPS + irOnDividends)) + (irOnSalary);
+  const totalValue = ownerNet + holdingNet + reserves;
+  const effectiveRate = revenue > 0 ? (revenue - opex - cfe - totalValue) / (revenue - opex - cfe) : 0;
+
+  return {
+    // société
+    revenue, opex, cfe, grossSalary, employerCharges, employeeCharges, totalSalaryCost,
+    ebit, is, profitAfterIS,
+    // distribution
+    distributable, divToOwnerGross, divToHoldingGross, reserves,
+    holdingTax, holdingNet,
+    // owner salary
+    netSalaryCash, netSalaryTaxable, salaryAfterAbatement,
+    // dividendes
+    dividendOption, dividendFlatTax, dividendPS, dividendIRPart, dividendNetCash,
+    // IR
+    ir, irOnSalary, irOnDividends, irOnOther,
+    parts: familyParts(marital, children),
+    // résultats
+    netFromSalary, ownerNet, totalSocial, totalCorpTax, totalIR,
+    totalDividendTax, totalTaxAndCharges, totalValue, effectiveRate,
+  };
+}
+
+// ============================================================
+//  UI / RENDERING
+// ============================================================
+const fmt = (v, opts={}) => new Intl.NumberFormat('fr-FR', {
+  style: 'currency', currency: 'EUR', maximumFractionDigits: 0, ...opts
+}).format(v || 0);
+const pct = v => (v * 100).toFixed(1) + '%';
+
+function readInputs() {
+  const num = id => parseFloat(document.getElementById(id).value) || 0;
+  return {
+    revenue: num('revenue'),
+    opex: num('opex'),
+    cfe: num('cfe'),
+    grossSalary: num('grossSalary'),
+    divToOwnerPct: num('divToOwnerPct'),
+    divToHoldingPct: num('divToHoldingPct'),
+    dividendOption: state.dividendOption,
+    marital: state.marital,
+    children: parseInt(document.getElementById('children').value) || 0,
+    otherIncome: num('otherIncome'),
+  };
+}
+
+const state = { dividendOption: 'pfu', marital: 'single' };
+
+function render() {
+  const inputs = readInputs();
+  const r = calculate(inputs);
+
+  // KPIs
+  document.getElementById('kpi-owner-net').textContent = fmt(r.ownerNet);
+  document.getElementById('kpi-owner-net-sub').textContent =
+    `${fmt(r.netFromSalary)} salaire + ${fmt(r.dividendNetCash)} dividendes`;
+  document.getElementById('kpi-holding').textContent = fmt(r.holdingNet);
+  document.getElementById('kpi-total-tax').textContent = fmt(r.totalTaxAndCharges);
+  document.getElementById('kpi-pressure').textContent =
+    `taux global ${pct(r.effectiveRate)} sur la valeur ajoutée`;
+  document.getElementById('kpi-total-value').textContent = fmt(r.totalValue);
+
+  // Slider labels
+  document.getElementById('divToOwnerVal').textContent = inputs.divToOwnerPct + '%';
+  document.getElementById('divToHoldingVal').textContent = inputs.divToHoldingPct + '%';
+
+  // Waterfall
+  renderWaterfall(r);
+
+  // Company table
+  document.getElementById('company-table').innerHTML = `
+    <tbody>
+      <tr><td>Chiffre d'affaires HT</td><td class="num">${fmt(r.revenue)}</td></tr>
+      <tr class="neg"><td>− Charges d'exploitation</td><td class="num">−${fmt(r.opex)}</td></tr>
+      <tr class="neg"><td>− CFE</td><td class="num">−${fmt(r.cfe)}</td></tr>
+      <tr class="neg"><td>− Salaire brut président</td><td class="num">−${fmt(r.grossSalary)}</td></tr>
+      <tr class="neg"><td>− Cotisations patronales (~42%)</td><td class="num">−${fmt(r.employerCharges)}</td></tr>
+      <tr class="subtotal"><td>= Résultat avant IS</td><td class="num">${fmt(r.ebit)}</td></tr>
+      <tr class="neg"><td>− Impôt sur les Sociétés</td><td class="num">−${fmt(r.is)}</td></tr>
+      <tr class="subtotal"><td>= Résultat distribuable</td><td class="num">${fmt(r.distributable)}</td></tr>
+      <tr><td>→ Dividendes au président</td><td class="num">${fmt(r.divToOwnerGross)}</td></tr>
+      <tr><td>→ Dividendes vers holding (avant IS mère-fille)</td><td class="num">${fmt(r.divToHoldingGross)}</td></tr>
+      <tr class="neg"><td>&nbsp;&nbsp;− IS holding (1,25%)</td><td class="num">−${fmt(r.holdingTax)}</td></tr>
+      <tr class="pos"><td>&nbsp;&nbsp;= Net en holding</td><td class="num">${fmt(r.holdingNet)}</td></tr>
+      <tr><td>→ Mis en réserve dans la SASU</td><td class="num">${fmt(r.reserves)}</td></tr>
+    </tbody>`;
+
+  // Personal table
+  const dividendDetail = r.dividendOption === 'pfu'
+    ? `<tr class="neg"><td>− Flat tax PFU 30%</td><td class="num">−${fmt(r.dividendFlatTax)}</td></tr>`
+    : `<tr class="neg"><td>− Prélèvements sociaux 17,2%</td><td class="num">−${fmt(r.dividendPS)}</td></tr>
+       <tr class="neg"><td>− IR sur dividendes (60% imposable)</td><td class="num">−${fmt(r.irOnDividends)}</td></tr>`;
+  document.getElementById('personal-table').innerHTML = `
+    <tbody>
+      <tr><th colspan="2">Salaire</th></tr>
+      <tr><td>Salaire brut</td><td class="num">${fmt(r.grossSalary)}</td></tr>
+      <tr class="neg"><td>− Cotisations salariales (~22%)</td><td class="num">−${fmt(r.employeeCharges)}</td></tr>
+      <tr class="subtotal"><td>= Net en poche (avant IR)</td><td class="num">${fmt(r.netSalaryCash)}</td></tr>
+      <tr><td>Net imposable (avant abattement 10%)</td><td class="num">${fmt(r.netSalaryTaxable)}</td></tr>
+      <tr><td>Imposable IR (après abattement)</td><td class="num">${fmt(r.salaryAfterAbatement)}</td></tr>
+      <tr class="neg"><td>− IR sur salaire (quote-part)</td><td class="num">−${fmt(r.irOnSalary)}</td></tr>
+      <tr class="pos"><td><b>= Net salarié final</b></td><td class="num"><b>${fmt(r.netFromSalary)}</b></td></tr>
+
+      <tr><th colspan="2">Dividendes (${r.dividendOption === 'pfu' ? 'PFU 30%' : 'Barème + abattement 40%'})</th></tr>
+      <tr><td>Dividendes bruts perçus</td><td class="num">${fmt(r.divToOwnerGross)}</td></tr>
+      ${dividendDetail}
+      <tr class="pos"><td><b>= Dividendes nets</b></td><td class="num"><b>${fmt(r.dividendNetCash)}</b></td></tr>
+
+      <tr><th colspan="2">Foyer fiscal</th></tr>
+      <tr><td>Parts fiscales (QF)</td><td class="num">${r.parts.toFixed(1)}</td></tr>
+      <tr><td>IR total foyer (avec autres revenus)</td><td class="num">${fmt(r.ir)}</td></tr>
+      <tr class="total pos"><td>Net en poche du dirigeant</td><td class="num">${fmt(r.ownerNet)}</td></tr>
+    </tbody>`;
+
+  renderOptimization(inputs);
+}
+
+// Waterfall — visualizes where every euro goes
+function renderWaterfall(r) {
+  const totalIR = r.irOnSalary + r.irOnDividends; // exclude others (kept separate)
+  const dividendTaxOwner = r.dividendOption === 'pfu' ? r.dividendFlatTax : (r.dividendPS + r.irOnDividends);
+  const items = [
+    { lbl: "Chiffre d'affaires", amt: r.revenue, color: '#4f8cff' },
+    { lbl: "− Charges + CFE",   amt: -(r.opex + r.cfe), color: '#888' },
+    { lbl: "− Cotis. patronales", amt: -r.employerCharges, color: '#ff6b6b' },
+    { lbl: "− IS société",       amt: -r.is, color: '#ff6b6b' },
+    { lbl: "− IS mère-fille",    amt: -r.holdingTax, color: '#ff8a6b' },
+    { lbl: "− Cotis. salariales", amt: -r.employeeCharges, color: '#ffa46b' },
+    { lbl: "− IR salaire",       amt: -r.irOnSalary, color: '#ffb020' },
+    { lbl: "− Taxe dividendes",  amt: -dividendTaxOwner, color: '#ffb020' },
+    { lbl: "= Réserves SASU",    amt: r.reserves, color: '#9da6c5', positive: true },
+    { lbl: "= Capital holding",  amt: r.holdingNet, color: '#20c997', positive: true },
+    { lbl: "= Net dirigeant",    amt: r.ownerNet, color: '#2ecc71', positive: true },
+  ];
+  const maxAbs = Math.max(...items.map(i => Math.abs(i.amt)), 1);
+  const html = items.map(i => `
+    <div class="wf-row">
+      <div class="lbl">${i.lbl}</div>
+      <div class="bar"><div class="bar-fill" style="width:${(Math.abs(i.amt)/maxAbs*100).toFixed(1)}%; background:${i.color}"></div></div>
+      <div class="amt" style="color:${i.amt < 0 ? 'var(--bad)' : (i.positive ? 'var(--good)' : 'var(--text)')}">${fmt(i.amt)}</div>
+    </div>`).join('');
+  document.getElementById('waterfall').innerHTML = html;
+}
+
+// Optimization scan — find best gross salary for the same total budget
+function renderOptimization(baseInputs) {
+  const budget = baseInputs.revenue - baseInputs.opex - baseInputs.cfe;
+  if (budget <= 0) { document.getElementById('optimization').innerHTML = ''; return; }
+  // Scan gross salaries from 0 to ~budget/1.42 (max payable)
+  const maxGross = Math.max(0, budget / (1 + PARAMS.EMPLOYER_CHARGES_RATE));
+  const samples = [];
+  const step = Math.max(2000, Math.round(maxGross / 25 / 1000) * 1000);
+  for (let g = 0; g <= maxGross; g += step) {
+    const r = calculate({ ...baseInputs, grossSalary: g });
+    samples.push({ gross: g, value: r.totalValue, owner: r.ownerNet, holding: r.holdingNet, reserves: r.reserves });
+  }
+  // Add the user's current salary too
+  const cur = calculate(baseInputs);
+  samples.push({ gross: baseInputs.grossSalary, value: cur.totalValue, owner: cur.ownerNet, holding: cur.holdingNet, reserves: cur.reserves, isCurrent: true });
+  // Find best
+  const best = samples.reduce((a, b) => b.value > a.value ? b : a);
+  // Show 6 representative points
+  samples.sort((a, b) => a.gross - b.gross);
+  const picks = [
+    samples[0],
+    samples[Math.floor(samples.length * 0.2)],
+    samples[Math.floor(samples.length * 0.4)],
+    samples[Math.floor(samples.length * 0.6)],
+    samples[Math.floor(samples.length * 0.8)],
+    samples[samples.length - 1],
+    best,
+  ].filter((v, i, a) => v && a.findIndex(x => x.gross === v.gross) === i);
+  document.getElementById('optimization').innerHTML = picks.map(s => `
+    <div class="opt-card ${s.gross === best.gross ? 'best' : ''}" data-gross="${s.gross}">
+      <div class="small">Salaire brut${s.gross === best.gross ? ' · MEILLEUR' : ''}</div>
+      <div class="big">${fmt(s.gross)}</div>
+      <hr>
+      <div class="small">Valeur totale</div>
+      <div class="big" style="color:${s.gross === best.gross ? 'var(--accent-2)' : 'var(--text)'}">${fmt(s.value)}</div>
+      <div class="small" style="margin-top:4px">
+        Net: ${fmt(s.owner)}<br>
+        Holding: ${fmt(s.holding)}<br>
+        Réserves: ${fmt(s.reserves)}
+      </div>
+    </div>
+  `).join('');
+  // Make cards clickable to set salary
+  document.querySelectorAll('.opt-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.getElementById('grossSalary').value = card.dataset.gross;
+      render();
+    });
+  });
+}
+
+// ============================================================
+//  EVENT WIRING
+// ============================================================
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', render));
+
+document.querySelectorAll('.toggle-group button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.target;
+    state[target] = btn.dataset.value;
+    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+});
+
+// Initial render
+render();
+</script>
+</body>
+</html>
