@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Optimiseur Fiscal SASU — France 2025</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0f1115; --panel: #181b22; --panel-2: #1f232c; --border: #2a2f3a;
@@ -122,8 +121,25 @@
   @media (max-width: 800px) { .chart-grid { grid-template-columns: 1fr; } }
   .chart-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
     padding: 16px; box-shadow: var(--shadow); }
-  .chart-wrap { position: relative; height: 280px; }
-  .chart-wrap.tall { height: 360px; }
+  .chart-wrap { position: relative; min-height: 280px; }
+  .chart-wrap.tall { min-height: 360px; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px;
+    color: var(--muted); margin-bottom: 8px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+  .legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+  .donut-layout { display: grid; grid-template-columns: 200px 1fr; gap: 16px;
+    align-items: center; }
+  @media (max-width: 600px) { .donut-layout { grid-template-columns: 1fr; } }
+  .donut-legend { display: grid; gap: 4px; font-size: 11px; }
+  .donut-legend .row { display: grid; grid-template-columns: 14px 1fr auto;
+    gap: 6px; align-items: center; }
+  .donut-legend .row .lbl { color: var(--muted); }
+  .donut-legend .row .val { font-variant-numeric: tabular-nums; color: var(--text); }
+  .svg-grid { stroke: var(--border); stroke-dasharray: 2,3; }
+  .svg-axis-text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  .svg-line { fill: none; stroke-width: 2; }
+  .svg-bar:hover { opacity: 0.85; cursor: pointer; }
 
   /* Scenarios */
   .scenario-list { display: grid; gap: 8px; }
@@ -305,11 +321,11 @@
         <div class="chart-grid">
           <div class="chart-card">
             <h3>Où va chaque euro de CA ?</h3>
-            <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+            <div class="chart-wrap" id="donutChart"></div>
           </div>
           <div class="chart-card">
             <h3>Salaire brut → valeur totale créée</h3>
-            <div class="chart-wrap"><canvas id="curveChart"></canvas></div>
+            <div class="chart-wrap" id="curveChart"></div>
           </div>
         </div>
         <div class="panel" style="margin-top:16px">
@@ -334,7 +350,7 @@
       <div class="tab-panel" data-panel="charts">
         <div class="chart-card">
           <h3>Salaire brut → valeur totale et net dirigeant</h3>
-          <div class="chart-wrap tall"><canvas id="curveChart2"></canvas></div>
+          <div class="chart-wrap tall" id="curveChart2"></div>
           <p class="footnote" style="margin-top:8px">
             Pour la même configuration (CA, charges, répartition dividendes, situation familiale),
             on fait varier le salaire brut. Le maximum de la courbe verte indique l'arbitrage optimal.
@@ -342,7 +358,7 @@
         </div>
         <div class="chart-card" style="margin-top:16px">
           <h3>Décomposition complète des prélèvements</h3>
-          <div class="chart-wrap"><canvas id="stackedBar"></canvas></div>
+          <div class="chart-wrap" id="stackedBar"></div>
         </div>
       </div>
 
@@ -370,7 +386,7 @@
         </div>
         <div class="chart-card" style="margin-top:16px">
           <h3>Comparaison visuelle</h3>
-          <div class="chart-wrap tall"><canvas id="compareChart"></canvas></div>
+          <div class="chart-wrap tall" id="compareChart"></div>
         </div>
       </div>
     </div>
@@ -604,8 +620,8 @@ function applyTheme(t) {
   state.theme = t;
   document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : '');
   localStorage.setItem('sasu-optimizer-theme', t);
-  // re-render charts to update colors
-  if (charts.donut) updateCharts(currentResult, currentInputs);
+  // re-render charts to pick up new theme variables
+  if (currentResult) updateCharts(currentResult, currentInputs);
 }
 function loadTheme() {
   const saved = localStorage.getItem('sasu-optimizer-theme') || 'dark';
@@ -624,7 +640,6 @@ function toast(msg) {
 //  RENDERING
 // ============================================================
 let currentResult = null, currentInputs = null;
-const charts = { donut: null, curve: null, curve2: null, stacked: null, compare: null };
 
 function getThemeColors() {
   const styles = getComputedStyle(document.documentElement);
@@ -740,124 +755,200 @@ function renderWaterfall(r) {
 }
 
 // ============================================================
-//  CHARTS
+//  CHARTS — pure SVG, zero dependencies
 // ============================================================
-function updateCharts(r, inputs) {
-  const C = getThemeColors();
-  Chart.defaults.color = C.muted;
-  Chart.defaults.borderColor = C.border;
-  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-
-  // ---- Donut: where every euro of CA goes ----
-  const donutData = {
-    labels: ['Charges + CFE', 'Cotis. patronales', 'IS société', 'IS holding',
-             'Cotis. salariales', 'IR salaire', 'Taxe dividendes',
-             'Réserves SASU', 'Capital holding', 'Net dirigeant'],
-    values: [r.opex + r.cfe, r.employerCharges, r.is, r.holdingTax,
-             r.employeeCharges, r.irOnSalary, r.totalDivTax,
-             r.reserves, r.holdingNet, r.ownerNet],
-    colors: ['#888', C.bad, C.bad, '#ff8a6b', '#ffa46b', C.warn, C.warn,
-             '#9da6c5', C.accent2, C.good],
-  };
-  upsertChart('donut', 'donutChart', {
-    type: 'doughnut',
-    data: {
-      labels: donutData.labels,
-      datasets: [{ data: donutData.values, backgroundColor: donutData.colors,
-        borderColor: C.panel, borderWidth: 2 }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.label}: ${fmt(ctx.parsed)} (${pct(ctx.parsed / r.revenue)})`
-          }
-        }
-      },
-      cutout: '55%',
-    }
-  });
-
-  // ---- Curve: salary → total value & owner net ----
-  const samples = scanSalary(inputs);
-  const curveData = {
-    labels: samples.map(s => Math.round(s.gross / 1000) + 'k'),
-    datasets: [
-      { label: 'Valeur totale', data: samples.map(s => s.value),
-        borderColor: C.good, backgroundColor: C.good + '22', tension: 0.25, fill: false, pointRadius: 0 },
-      { label: 'Net dirigeant', data: samples.map(s => s.owner),
-        borderColor: C.accent, backgroundColor: C.accent + '22', tension: 0.25, fill: false, pointRadius: 0 },
-      { label: 'Capital holding', data: samples.map(s => s.holding),
-        borderColor: C.accent2, backgroundColor: C.accent2 + '22', tension: 0.25, fill: false, pointRadius: 0,
-        borderDash: [4, 3] },
-    ],
-  };
-  // Mark current salary point
-  const idx = samples.findIndex(s => s.gross >= inputs.grossSalary);
-  if (idx >= 0) {
-    curveData.datasets[0].pointRadius = curveData.labels.map((_, i) => i === idx ? 6 : 0);
-    curveData.datasets[0].pointBackgroundColor = curveData.labels.map((_, i) => i === idx ? C.good : C.good);
-  }
-  const curveOpts = {
-    type: 'line',
-    data: curveData,
-    options: {
-      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
-        tooltip: {
-          callbacks: {
-            title: items => 'Salaire brut: ' + items[0].label,
-            label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y)
-          }
-        }
-      },
-      scales: {
-        x: { title: { display: true, text: 'Salaire brut (k€)' } },
-        y: { ticks: { callback: v => fmt(v) } },
-      },
-    }
-  };
-  upsertChart('curve', 'curveChart', JSON.parse(JSON.stringify(curveOpts)));
-  upsertChart('curve2', 'curveChart2', curveOpts);
-
-  // ---- Stacked bar: tax breakdown components ----
-  upsertChart('stacked', 'stackedBar', {
-    type: 'bar',
-    data: {
-      labels: ['Société', 'Salaire', 'Dividendes', 'Holding'],
-      datasets: [
-        { label: 'IS / IS mère-fille', data: [r.is, 0, 0, r.holdingTax], backgroundColor: C.bad },
-        { label: 'Cotis. patronales', data: [0, r.employerCharges, 0, 0], backgroundColor: '#ff8a6b' },
-        { label: 'Cotis. salariales', data: [0, r.employeeCharges, 0, 0], backgroundColor: '#ffa46b' },
-        { label: 'IR salaire',        data: [0, r.irOnSalary, 0, 0],      backgroundColor: C.warn },
-        { label: 'Taxe dividendes',   data: [0, 0, r.totalDivTax, 0],     backgroundColor: '#ffd060' },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } }
-      },
-      scales: {
-        x: { stacked: true },
-        y: { stacked: true, ticks: { callback: v => fmt(v) } },
-      },
-    }
-  });
-
-  // ---- Compare chart ----
-  renderCompareChart();
+function escapeXml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;' }[c]));
 }
 
-function upsertChart(key, canvasId, config) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  if (charts[key]) { charts[key].destroy(); }
-  charts[key] = new Chart(canvas, config);
+// ----- Donut (SVG) -----
+function renderDonut(containerId, items, totalForPct) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const C = getThemeColors();
+  const total = items.reduce((s, i) => s + Math.max(0, i.value), 0) || 1;
+  const cx = 100, cy = 100, r = 90, ir = 55;
+  let acc = 0;
+  const arcs = items.filter(i => i.value > 0).map(i => {
+    const a0 = (acc / total) * 2 * Math.PI - Math.PI / 2;
+    acc += i.value;
+    const a1 = (acc / total) * 2 * Math.PI - Math.PI / 2;
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    const x0 = cx + r * Math.cos(a0),  y0 = cy + r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1),  y1 = cy + r * Math.sin(a1);
+    const xi0 = cx + ir * Math.cos(a0), yi0 = cy + ir * Math.sin(a0);
+    const xi1 = cx + ir * Math.cos(a1), yi1 = cy + ir * Math.sin(a1);
+    return `<path d="M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${xi1.toFixed(2)} ${yi1.toFixed(2)} A${ir} ${ir} 0 ${large} 0 ${xi0.toFixed(2)} ${yi0.toFixed(2)} Z" fill="${i.color}" stroke="${C.panel}" stroke-width="2"><title>${escapeXml(i.label)}: ${fmt(i.value)} (${pct(i.value/totalForPct)})</title></path>`;
+  }).join('');
+  const legend = items.filter(i => i.value > 0).map(i => `
+    <div class="row">
+      <span class="legend-dot" style="background:${i.color}"></span>
+      <span class="lbl">${escapeXml(i.label)}</span>
+      <span class="val">${pct(i.value/totalForPct)}</span>
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="donut-layout">
+      <svg viewBox="0 0 200 200" width="200" height="200">${arcs}</svg>
+      <div class="donut-legend">${legend}</div>
+    </div>`;
+}
+
+// ----- Line chart (SVG) — multi-series, with hover guideline -----
+function renderLineChart(containerId, datasets, xLabels, opts = {}) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const C = getThemeColors();
+  const W = 720, H = opts.height || 320, pad = { l: 70, r: 16, t: 24, b: 40 };
+  const xN = xLabels.length;
+  const allY = datasets.flatMap(d => d.data);
+  const yMin = Math.min(0, ...allY);
+  const yMax = Math.max(...allY, 1);
+  const xPos = i => pad.l + (i / Math.max(xN - 1, 1)) * (W - pad.l - pad.r);
+  const yPos = v => H - pad.b - ((v - yMin) / (yMax - yMin || 1)) * (H - pad.t - pad.b);
+
+  // Y grid + ticks
+  const tCount = 5;
+  let grid = '';
+  for (let i = 0; i <= tCount; i++) {
+    const v = yMin + (i / tCount) * (yMax - yMin);
+    grid += `<line class="svg-grid" x1="${pad.l}" x2="${W - pad.r}" y1="${yPos(v)}" y2="${yPos(v)}"/>
+             <text class="svg-axis-text" x="${pad.l - 8}" y="${yPos(v) + 4}" text-anchor="end">${fmt(v)}</text>`;
+  }
+  // X labels — show ~8 of them
+  const xStep = Math.max(1, Math.floor(xN / 8));
+  let xAxis = '';
+  for (let i = 0; i < xN; i++) {
+    if (i % xStep === 0 || i === xN - 1) {
+      xAxis += `<text class="svg-axis-text" x="${xPos(i)}" y="${H - pad.b + 18}" text-anchor="middle">${escapeXml(xLabels[i])}</text>`;
+    }
+  }
+  // X title
+  if (opts.xTitle) {
+    xAxis += `<text class="svg-axis-text" x="${(pad.l + W - pad.r) / 2}" y="${H - 4}" text-anchor="middle">${escapeXml(opts.xTitle)}</text>`;
+  }
+  // Lines
+  const lines = datasets.map(d => {
+    const path = d.data.map((v, i) => `${i === 0 ? 'M' : 'L'}${xPos(i).toFixed(1)} ${yPos(v).toFixed(1)}`).join(' ');
+    return `<path class="svg-line" d="${path}" stroke="${d.color}" ${d.dash ? 'stroke-dasharray="5,3"' : ''}/>`;
+  }).join('');
+  // Highlight point
+  let highlight = '';
+  if (opts.highlightIndex !== undefined && opts.highlightIndex >= 0) {
+    const i = opts.highlightIndex;
+    const d = datasets[0];
+    if (d && d.data[i] !== undefined) {
+      highlight = `<circle cx="${xPos(i)}" cy="${yPos(d.data[i])}" r="5" fill="${d.color}" stroke="${C.panel}" stroke-width="2"/>`;
+    }
+  }
+  // Legend
+  const legend = datasets.map(d =>
+    `<span class="legend-item"><span class="legend-dot" style="background:${d.color}"></span>${escapeXml(d.label)}</span>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="chart-legend">${legend}</div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      ${grid}${xAxis}${lines}${highlight}
+    </svg>`;
+}
+
+// ----- Stacked bar (SVG) -----
+function renderStackedBar(containerId, categories, datasets, opts = {}) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const C = getThemeColors();
+  const W = 720, H = opts.height || 320, pad = { l: 70, r: 16, t: 24, b: 56 };
+  const totals = categories.map((_, i) => datasets.reduce((s, d) => s + (d.data[i] || 0), 0));
+  const yMax = Math.max(...totals, 1);
+  const yPos = v => H - pad.b - (v / yMax) * (H - pad.t - pad.b);
+  const slotW = (W - pad.l - pad.r) / categories.length;
+  const barW = Math.min(80, slotW * 0.6);
+  // Y grid
+  const tCount = 5;
+  let grid = '';
+  for (let i = 0; i <= tCount; i++) {
+    const v = (i / tCount) * yMax;
+    grid += `<line class="svg-grid" x1="${pad.l}" x2="${W - pad.r}" y1="${yPos(v)}" y2="${yPos(v)}"/>
+             <text class="svg-axis-text" x="${pad.l - 8}" y="${yPos(v) + 4}" text-anchor="end">${fmt(v)}</text>`;
+  }
+  // Bars
+  let bars = '', xAxis = '';
+  categories.forEach((cat, i) => {
+    const cx = pad.l + (i + 0.5) * slotW;
+    const x = cx - barW / 2;
+    let yTop = H - pad.b;
+    datasets.forEach(d => {
+      const v = d.data[i] || 0;
+      if (v > 0) {
+        const h = (v / yMax) * (H - pad.t - pad.b);
+        const y = yTop - h;
+        yTop = y;
+        bars += `<rect class="svg-bar" x="${x}" y="${y.toFixed(1)}" width="${barW}" height="${h.toFixed(1)}" fill="${d.color}"><title>${escapeXml(d.label)} (${escapeXml(cat)}): ${fmt(v)}</title></rect>`;
+      }
+    });
+    // Total label above bar
+    bars += `<text class="svg-axis-text" x="${cx}" y="${yPos(totals[i]) - 6}" text-anchor="middle" fill="${C.text}">${fmt(totals[i])}</text>`;
+    xAxis += `<text class="svg-axis-text" x="${cx}" y="${H - pad.b + 18}" text-anchor="middle">${escapeXml(cat)}</text>`;
+  });
+  // Legend
+  const legend = datasets.map(d =>
+    `<span class="legend-item"><span class="legend-dot" style="background:${d.color}"></span>${escapeXml(d.label)}</span>`
+  ).join('');
+  el.innerHTML = `
+    <div class="chart-legend">${legend}</div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      ${grid}${bars}${xAxis}
+    </svg>`;
+}
+
+// ----- updateCharts: orchestrates all charts -----
+function updateCharts(r, inputs) {
+  const C = getThemeColors();
+
+  // Donut — where every euro of CA goes
+  const donutItems = [
+    { label: 'Charges + CFE',     value: r.opex + r.cfe,    color: '#888' },
+    { label: 'Cotis. patronales', value: r.employerCharges, color: C.bad },
+    { label: 'IS société',        value: r.is,              color: '#e85a5a' },
+    { label: 'IS holding',        value: r.holdingTax,      color: '#ff8a6b' },
+    { label: 'Cotis. salariales', value: r.employeeCharges, color: '#ffa46b' },
+    { label: 'IR salaire',        value: r.irOnSalary,      color: C.warn },
+    { label: 'Taxe dividendes',   value: r.totalDivTax,     color: '#ffd060' },
+    { label: 'Réserves SASU',     value: r.reserves,        color: '#9da6c5' },
+    { label: 'Capital holding',   value: r.holdingNet,      color: C.accent2 },
+    { label: 'Net dirigeant',     value: r.ownerNet,        color: C.good },
+  ];
+  renderDonut('donutChart', donutItems, r.revenue || 1);
+
+  // Curves — salary → metrics
+  const samples = scanSalary(inputs);
+  const xLabels = samples.map(s => Math.round(s.gross / 1000) + 'k');
+  const idx = samples.findIndex(s => Math.abs(s.gross - inputs.grossSalary) < 1e-6);
+  const closestIdx = idx >= 0 ? idx :
+    samples.reduce((best, s, i) => Math.abs(s.gross - inputs.grossSalary) < Math.abs(samples[best].gross - inputs.grossSalary) ? i : best, 0);
+  const curveDatasets = [
+    { label: 'Valeur totale',   data: samples.map(s => s.value),   color: C.good },
+    { label: 'Net dirigeant',   data: samples.map(s => s.owner),   color: C.accent },
+    { label: 'Capital holding', data: samples.map(s => s.holding), color: C.accent2, dash: true },
+  ];
+  renderLineChart('curveChart',  curveDatasets, xLabels, { xTitle: 'Salaire brut (k€)', highlightIndex: closestIdx });
+  renderLineChart('curveChart2', curveDatasets, xLabels, { xTitle: 'Salaire brut (k€)', highlightIndex: closestIdx, height: 380 });
+
+  // Stacked bar — tax components by source
+  renderStackedBar('stackedBar',
+    ['Société', 'Salaire', 'Dividendes', 'Holding'],
+    [
+      { label: 'IS société',        data: [r.is, 0, 0, 0],                color: C.bad },
+      { label: 'IS holding',        data: [0, 0, 0, r.holdingTax],        color: '#ff8a6b' },
+      { label: 'Cotis. patronales', data: [0, r.employerCharges, 0, 0],   color: '#ff8a6b' },
+      { label: 'Cotis. salariales', data: [0, r.employeeCharges, 0, 0],   color: '#ffa46b' },
+      { label: 'IR salaire',        data: [0, r.irOnSalary, 0, 0],        color: C.warn },
+      { label: 'Taxe dividendes',   data: [0, 0, r.totalDivTax, 0],       color: '#ffd060' },
+    ]
+  );
+
+  // Compare chart
+  renderCompareChart();
 }
 
 function scanSalary(inputs) {
@@ -967,39 +1058,24 @@ function renderScenarios() {
 
 function renderCompareChart() {
   const C = getThemeColors();
-  const all = [...state.scenarios.map(s => ({ name: s.name, r: s.result })),
-               { name: 'Actuel', r: currentResult }];
-  const labels = all.map(s => s.name);
-  upsertChart('compare', 'compareChart', {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Net dirigeant', data: all.map(s => s.r.ownerNet), backgroundColor: C.accent },
-        { label: 'Capital holding', data: all.map(s => s.r.holdingNet), backgroundColor: C.accent2 },
-        { label: 'Réserves SASU', data: all.map(s => s.r.reserves), backgroundColor: '#9da6c5' },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: {
-          callbacks: {
-            label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y),
-            footer: items => {
-              const total = items.reduce((s, i) => s + i.parsed.y, 0);
-              return 'Total: ' + fmt(total);
-            }
-          }
-        }
-      },
-      scales: {
-        x: { stacked: true },
-        y: { stacked: true, ticks: { callback: v => fmt(v) } },
-      },
-    }
-  });
+  const all = [
+    ...state.scenarios.map(s => ({ name: s.name, r: s.result })),
+    { name: 'Actuel', r: currentResult },
+  ].filter(x => x.r);
+  if (all.length < 2 && !state.scenarios.length) {
+    document.getElementById('compareChart').innerHTML =
+      '<p class="footnote" style="text-align:center;padding:40px 0">Sauvegardez au moins un scénario pour voir la comparaison.</p>';
+    return;
+  }
+  renderStackedBar('compareChart',
+    all.map(s => s.name),
+    [
+      { label: 'Net dirigeant',   data: all.map(s => s.r.ownerNet),   color: C.accent },
+      { label: 'Capital holding', data: all.map(s => s.r.holdingNet), color: C.accent2 },
+      { label: 'Réserves SASU',   data: all.map(s => s.r.reserves),   color: '#9da6c5' },
+    ],
+    { height: 380 }
+  );
 }
 
 // ============================================================
