@@ -3,109 +3,222 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Optimiseur Fiscal SASU — France</title>
+<title>Optimiseur Fiscal SASU — France 2025</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #181b22;
-    --panel-2: #1f232c;
-    --border: #2a2f3a;
-    --text: #e6e9ef;
-    --muted: #98a2b3;
-    --accent: #4f8cff;
-    --accent-2: #20c997;
-    --warn: #ffb020;
-    --bad: #ff6b6b;
-    --good: #2ecc71;
+    --bg: #0f1115; --panel: #181b22; --panel-2: #1f232c; --border: #2a2f3a;
+    --text: #e6e9ef; --muted: #98a2b3;
+    --accent: #4f8cff; --accent-2: #20c997;
+    --warn: #ffb020; --bad: #ff6b6b; --good: #2ecc71;
+    --shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
+  [data-theme="light"] {
+    --bg: #f7f8fa; --panel: #ffffff; --panel-2: #f0f2f5; --border: #e1e5eb;
+    --text: #1a1f2e; --muted: #5a6478;
+    --accent: #2563eb; --accent-2: #059669;
+    --warn: #d97706; --bad: #dc2626; --good: #059669;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 22px 0 10px; }
-  h3 { font-size: 13px; margin: 0 0 8px; color: var(--text); }
-  .subtitle { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  header.bar { display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  header.bar h1 { font-size: 22px; margin: 0; }
+  header.bar .subtitle { color: var(--muted); font-size: 12px; margin: 2px 0 0; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 12px; font-size: 13px; cursor: pointer; font-family: inherit;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.icon { padding: 7px 9px; }
+
+  /* Layout */
   .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
-  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+
+  /* Panels */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; box-shadow: var(--shadow); }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
+    margin: 22px 0 10px; font-weight: 600; }
+  h2:first-child { margin-top: 0; }
+  h3 { font-size: 13px; margin: 0 0 12px; font-weight: 600; }
+
+  /* Inputs */
   .field { margin-bottom: 12px; }
   label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  input[type=number], select {
-    width: 100%; background: var(--panel-2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 6px;
-    padding: 8px 10px; font-size: 14px; font-family: inherit;
-  }
+  label .v { color: var(--accent); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=number], select { width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 14px;
+    font-family: inherit; transition: border-color 0.15s; }
   input[type=number]:focus, select:focus { outline: none; border-color: var(--accent); }
   input[type=range] { width: 100%; accent-color: var(--accent); }
-  .row { display: flex; gap: 10px; align-items: center; }
+  .row { display: flex; gap: 10px; }
   .row > * { flex: 1; }
-  .slider-val { color: var(--accent); font-weight: 600; min-width: 56px; text-align: right; }
-  .toggle-group { display: flex; gap: 4px; background: var(--panel-2); border-radius: 6px; padding: 3px; }
-  .toggle-group button {
-    flex: 1; background: transparent; color: var(--muted); border: none;
-    padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: inherit;
-  }
-  .toggle-group button.active { background: var(--accent); color: white; }
-  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 720px) { .results { grid-template-columns: 1fr; } }
-  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .kpi .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .kpi .val { font-size: 22px; font-weight: 600; margin-top: 4px; }
-  .kpi .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .toggle-group { display: flex; gap: 3px; background: var(--panel-2); border-radius: 7px; padding: 3px; }
+  .toggle-group button { flex: 1; background: transparent; color: var(--muted); border: none;
+    padding: 7px 8px; border-radius: 5px; cursor: pointer; font-size: 13px; font-family: inherit;
+    transition: all 0.15s; }
+  .toggle-group button.active { background: var(--accent); color: white; box-shadow: var(--shadow); }
+  .toggle-group button:not(.active):hover { color: var(--text); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .tab { background: transparent; border: none; color: var(--muted); padding: 10px 16px;
+    cursor: pointer; font-size: 13px; font-family: inherit; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 800px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; box-shadow: var(--shadow); transition: transform 0.15s; }
+  .kpi:hover { transform: translateY(-1px); }
+  .kpi .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .val { font-size: 22px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums;
+    transition: color 0.3s; }
+  .kpi .sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
   .kpi.accent { border-color: var(--accent); }
+  .kpi.accent .val { color: var(--accent); }
   .kpi.good .val { color: var(--good); }
-  .kpi.warn .val { color: var(--warn); }
+
+  /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.04em; padding-top: 14px; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  tr.total td { font-weight: 600; border-top: 2px solid var(--border); border-bottom: none; padding-top: 10px; }
+  tr.total td { font-weight: 600; border-top: 2px solid var(--border); border-bottom: none;
+    padding-top: 10px; }
   tr.subtotal td { color: var(--muted); }
   tr.neg td.num { color: var(--bad); }
   tr.pos td.num { color: var(--good); }
+
+  /* Waterfall */
   .waterfall { display: flex; flex-direction: column; gap: 4px; }
-  .wf-row { display: grid; grid-template-columns: 160px 1fr 110px; gap: 10px; align-items: center; font-size: 13px; }
-  .wf-row .bar { height: 22px; border-radius: 3px; position: relative; background: var(--panel-2); }
-  .wf-row .bar-fill { height: 100%; border-radius: 3px; }
+  .wf-row { display: grid; grid-template-columns: 170px 1fr 110px; gap: 10px; align-items: center; font-size: 13px; }
+  .wf-row .bar { height: 22px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+  .wf-row .bar-fill { height: 100%; transition: width 0.3s ease; }
   .wf-row .lbl { color: var(--muted); }
   .wf-row .amt { font-variant-numeric: tabular-nums; text-align: right; }
-  .badge {
-    display: inline-block; padding: 2px 8px; border-radius: 99px;
-    font-size: 11px; font-weight: 600; background: var(--panel-2); color: var(--muted);
-  }
+
+  /* Charts */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; box-shadow: var(--shadow); }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap.tall { height: 360px; }
+
+  /* Scenarios */
+  .scenario-list { display: grid; gap: 8px; }
+  .scenario-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center;
+    padding: 10px 12px; background: var(--panel-2); border-radius: 6px; font-size: 13px; }
+  .scenario-row .name { font-weight: 500; }
+  .scenario-row .meta { color: var(--muted); font-size: 11px; }
+  .scenario-row button { background: transparent; border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 8px; color: var(--muted); cursor: pointer; font-size: 12px;
+    font-family: inherit; }
+  .scenario-row button:hover { color: var(--text); border-color: var(--accent); }
+
+  /* Misc */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px;
+    font-weight: 600; background: var(--panel-2); color: var(--muted); }
   .badge.ok { background: rgba(46,204,113,0.15); color: var(--good); }
   .badge.warn { background: rgba(255,176,32,0.15); color: var(--warn); }
-  .footnote { color: var(--muted); font-size: 11px; margin-top: 16px; line-height: 1.6; }
-  details summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; }
+  .footnote { color: var(--muted); font-size: 11px; line-height: 1.6; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0;
+    user-select: none; }
   details[open] summary { color: var(--text); }
-  .opt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
-  .opt-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; cursor: pointer; transition: border-color 0.15s; }
-  .opt-card:hover { border-color: var(--accent); }
+  details summary::-webkit-details-marker { color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: white; padding: 10px 20px; border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; opacity: 0;
+    transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+  /* Optimization */
+  .opt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-top: 14px; }
+  .opt-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; cursor: pointer; transition: all 0.15s; }
+  .opt-card:hover { border-color: var(--accent); transform: translateY(-1px); }
   .opt-card.best { border-color: var(--accent-2); background: rgba(32,201,151,0.08); }
   .opt-card .small { font-size: 11px; color: var(--muted); }
-  .opt-card .big { font-size: 16px; font-weight: 600; margin-top: 2px; }
-  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .opt-card .big { font-size: 15px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    .actions, .inputs, .tabs, .opt-card, .toggle-group { display: none !important; }
+    .panel, .kpi, .chart-card { box-shadow: none; border: 1px solid #ccc; }
+    .grid { grid-template-columns: 1fr; }
+    .tab-panel { display: block !important; page-break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Optimiseur Fiscal SASU</h1>
-  <p class="subtitle">
-    Simulation de la chaîne CA → IS → rémunération / dividendes / holding → revenu net du dirigeant.
-    Paramètres fiscaux 2025 (revenus 2024).
-    <span class="badge warn">Outil pédagogique — vérifier avec un expert-comptable</span>
-  </p>
+
+  <!-- ====================== HEADER ====================== -->
+  <header class="bar">
+    <div>
+      <h1>Optimiseur Fiscal SASU
+        <span class="badge warn">Pédagogique</span>
+      </h1>
+      <p class="subtitle">CA → IS → salaire / dividendes / holding → revenu net du dirigeant. Paramètres 2025.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btn-save-scenario" title="Sauvegarder la configuration courante">+ Scénario</button>
+      <button class="btn" id="btn-share" title="Copier le lien de partage">🔗 Partager</button>
+      <button class="btn" id="btn-print" title="Version imprimable">🖨</button>
+      <button class="btn icon" id="btn-theme" title="Thème clair / sombre">🌓</button>
+    </div>
+  </header>
+
+  <!-- ====================== KPIs (always visible) ====================== -->
+  <div class="kpis">
+    <div class="kpi accent">
+      <div class="lbl">Net du dirigeant</div>
+      <div class="val" id="kpi-owner-net">—</div>
+      <div class="sub" id="kpi-owner-net-sub">—</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Capital en holding</div>
+      <div class="val" id="kpi-holding">—</div>
+      <div class="sub">après IS mère-fille</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Total prélèvements</div>
+      <div class="val" id="kpi-total-tax">—</div>
+      <div class="sub" id="kpi-pressure">—</div>
+    </div>
+    <div class="kpi good">
+      <div class="lbl">Valeur totale créée</div>
+      <div class="val" id="kpi-total-value">—</div>
+      <div class="sub">net + holding + réserves</div>
+    </div>
+  </div>
 
   <div class="grid">
-    <!-- ==================== INPUTS ==================== -->
-    <div class="panel">
+    <!-- ====================== INPUTS ====================== -->
+    <div class="panel inputs">
       <h2>Société</h2>
       <div class="field">
         <label>Chiffre d'affaires HT (€/an)</label>
@@ -114,43 +227,37 @@
       <div class="field">
         <label>Charges d'exploitation hors rémunération (€/an)</label>
         <input type="number" id="opex" value="15000" step="500">
-        <div class="footnote" style="margin-top:4px">Loyer, matériel, prestations, déplacements, comptable…</div>
       </div>
       <div class="field">
         <label>CFE (€/an)</label>
         <input type="number" id="cfe" value="800" step="100">
       </div>
 
-      <h2>Rémunération du président</h2>
+      <h2>Rémunération</h2>
       <div class="field">
-        <label>Salaire BRUT annuel (€)</label>
+        <label>Salaire BRUT annuel (€) <span class="v" id="grossSalaryHint"></span></label>
         <input type="number" id="grossSalary" value="40000" step="500">
-        <div class="footnote" style="margin-top:4px">
-          Coût employeur ≈ brut × 1,42 — Net en poche ≈ brut × 0,78
-        </div>
       </div>
 
-      <h2>Politique de distribution du résultat</h2>
+      <h2>Distribution du résultat</h2>
       <div class="field">
-        <label>Dividendes au président <span class="slider-val" id="divToOwnerVal">50%</span></label>
+        <label>Dividendes au président <span class="v" id="divToOwnerVal">50%</span></label>
         <input type="range" id="divToOwnerPct" min="0" max="100" value="50" step="5">
       </div>
       <div class="field">
-        <label>Dividendes vers la holding (mère-fille) <span class="slider-val" id="divToHoldingVal">50%</span></label>
+        <label>Dividendes vers holding (mère-fille) <span class="v" id="divToHoldingVal">50%</span></label>
         <input type="range" id="divToHoldingPct" min="0" max="100" value="50" step="5">
-        <div class="footnote" style="margin-top:4px">
-          Le reste = bénéfice mis en réserve dans la SASU (non distribué).
-        </div>
+        <div class="footnote" style="margin-top:4px">Le reste = mis en réserve dans la SASU.</div>
       </div>
       <div class="field">
         <label>Régime fiscal des dividendes</label>
         <div class="toggle-group">
           <button data-target="dividendOption" data-value="pfu" class="active">PFU 30%</button>
-          <button data-target="dividendOption" data-value="bareme">Barème + abattement 40%</button>
+          <button data-target="dividendOption" data-value="bareme">Barème + 40%</button>
         </div>
       </div>
 
-      <h2>Situation familiale (foyer fiscal)</h2>
+      <h2>Foyer fiscal</h2>
       <div class="field">
         <label>Statut</label>
         <div class="toggle-group">
@@ -164,117 +271,134 @@
           <input type="number" id="children" value="0" min="0" max="10">
         </div>
         <div class="field">
-          <label>Autres revenus du foyer (€/an)</label>
+          <label>Autres revenus (€/an)</label>
           <input type="number" id="otherIncome" value="0" step="1000">
         </div>
       </div>
+
       <details>
-        <summary>Hypothèses de calcul (cliquer pour voir)</summary>
+        <summary>Hypothèses & paramètres 2025</summary>
         <div class="footnote">
-          • IS : 15% jusqu'à 42 500 € de bénéfice (taux PME : CA &lt; 10 M€, capital ≥ 75% détenu par personnes physiques), 25% au-delà.<br>
-          • Cotisations sociales SASU président (assimilé salarié) : ~42% patronales, ~22% salariales (simplification, varie avec PASS).<br>
-          • Salaire net imposable ≈ brut × 0,81 (CSG/CRDS non déductible réintégrée). Abattement 10% frais pro plafonné à 14 171 €.<br>
-          • PFU : 12,8% IR + 17,2% PS = 30%. Option barème : 17,2% PS sur brut + IR sur 60% (abattement 40%) ; CSG 6,8% déductible reportée approximée.<br>
-          • Régime mère-fille : 95% exonérés, quote-part de 5% taxée à 25% IS = 1,25% effectif.<br>
-          • Quotient familial : +0,5 part par enfant (2 premiers), +1 au-delà ; plafonnement 1 791 €/demi-part.<br>
-          • Tranches IR 2025 (revenus 2024) : 0/11 497, 11%/29 315, 30%/83 823, 41%/180 294, 45%.
+          • IS : 15% jusqu'à 42 500 € (PME), 25% au-delà.<br>
+          • Cotisations SASU président (assimilé salarié) : ~42% patronales, ~22% salariales.<br>
+          • Salaire net imposable ≈ brut × 0,81. Abattement 10% (plafond 14 171 €).<br>
+          • PFU : 12,8 IR + 17,2 PS = 30%. Barème : 17,2 PS + IR sur 60%.<br>
+          • Mère-fille : 5% × 25% = 1,25% effectif.<br>
+          • QF : +0,5/enfant (2 premiers), +1 au-delà ; plafond 1 791 €/demi-part.<br>
+          • IR 2025 : 0/11 497, 11%/29 315, 30%/83 823, 41%/180 294, 45%.
         </div>
       </details>
     </div>
 
-    <!-- ==================== RESULTS ==================== -->
+    <!-- ====================== TABS ====================== -->
     <div>
-      <div class="results">
-        <div class="kpi accent">
-          <div class="lbl">Net en poche du dirigeant</div>
-          <div class="val" id="kpi-owner-net">—</div>
-          <div class="sub" id="kpi-owner-net-sub">salaire net après IR + dividendes nets</div>
+      <div class="tabs">
+        <button class="tab active" data-panel="overview">Vue d'ensemble</button>
+        <button class="tab" data-panel="cascade">Cascade</button>
+        <button class="tab" data-panel="charts">Graphiques</button>
+        <button class="tab" data-panel="optim">Optimisation</button>
+        <button class="tab" data-panel="compare">Comparaison <span class="badge" id="scenario-count"></span></button>
+      </div>
+
+      <!-- Tab: Overview -->
+      <div class="tab-panel active" data-panel="overview">
+        <div class="chart-grid">
+          <div class="chart-card">
+            <h3>Où va chaque euro de CA ?</h3>
+            <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Salaire brut → valeur totale créée</h3>
+            <div class="chart-wrap"><canvas id="curveChart"></canvas></div>
+          </div>
         </div>
-        <div class="kpi">
-          <div class="lbl">Capital placé en holding</div>
-          <div class="val" id="kpi-holding">—</div>
-          <div class="sub">après IS mère-fille (1,25%)</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Total prélèvements</div>
-          <div class="val" id="kpi-total-tax">—</div>
-          <div class="sub" id="kpi-pressure">taux global —</div>
-        </div>
-        <div class="kpi good">
-          <div class="lbl">Valeur totale créée pour le dirigeant</div>
-          <div class="val" id="kpi-total-value">—</div>
-          <div class="sub">net en poche + capital holding + réserves</div>
+        <div class="panel" style="margin-top:16px">
+          <h3>Cascade fiscale</h3>
+          <div class="waterfall" id="waterfall"></div>
         </div>
       </div>
 
-      <div class="panel" style="margin-top:16px">
-        <h3>Cascade fiscale — du chiffre d'affaires au net</h3>
-        <div class="waterfall" id="waterfall"></div>
+      <!-- Tab: Cascade (tables) -->
+      <div class="tab-panel" data-panel="cascade">
+        <div class="panel">
+          <h3>Détail société (compte de résultat simplifié)</h3>
+          <table id="company-table"></table>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <h3>Détail dirigeant (revenu personnel)</h3>
+          <table id="personal-table"></table>
+        </div>
       </div>
 
-      <div class="panel" style="margin-top:16px">
-        <h3>Détail société (compte de résultat simplifié)</h3>
-        <table id="company-table"></table>
+      <!-- Tab: Charts -->
+      <div class="tab-panel" data-panel="charts">
+        <div class="chart-card">
+          <h3>Salaire brut → valeur totale et net dirigeant</h3>
+          <div class="chart-wrap tall"><canvas id="curveChart2"></canvas></div>
+          <p class="footnote" style="margin-top:8px">
+            Pour la même configuration (CA, charges, répartition dividendes, situation familiale),
+            on fait varier le salaire brut. Le maximum de la courbe verte indique l'arbitrage optimal.
+          </p>
+        </div>
+        <div class="chart-card" style="margin-top:16px">
+          <h3>Décomposition complète des prélèvements</h3>
+          <div class="chart-wrap"><canvas id="stackedBar"></canvas></div>
+        </div>
       </div>
 
-      <div class="panel" style="margin-top:16px">
-        <h3>Détail dirigeant (revenu personnel)</h3>
-        <table id="personal-table"></table>
+      <!-- Tab: Optimisation -->
+      <div class="tab-panel" data-panel="optim">
+        <div class="panel">
+          <h3>Salaire brut optimal pour cette configuration</h3>
+          <p class="footnote">
+            Scan du salaire brut entre 0 et le maximum payable, à charges fixes. Le scénario en vert
+            maximise la valeur totale (net + holding + réserves). Cliquez pour appliquer.
+          </p>
+          <div class="opt-grid" id="optimization"></div>
+        </div>
       </div>
 
-      <div class="panel" style="margin-top:16px">
-        <h3>Optimisation — quel est le meilleur arbitrage salaire / dividendes ?</h3>
-        <p class="footnote" style="margin-top:0">
-          Pour le CA et les charges saisis, scan du salaire brut optimal afin de maximiser la valeur totale créée
-          (net en poche + capital en holding). Les dividendes restants vont 100% selon votre répartition courante.
-        </p>
-        <div class="opt-grid" id="optimization"></div>
+      <!-- Tab: Comparaison -->
+      <div class="tab-panel" data-panel="compare">
+        <div class="panel">
+          <h3>Scénarios sauvegardés</h3>
+          <p class="footnote">
+            Sauvegardez plusieurs configurations via "+ Scénario" en haut. Les scénarios sont
+            stockés localement dans votre navigateur.
+          </p>
+          <div class="scenario-list" id="scenario-list"></div>
+        </div>
+        <div class="chart-card" style="margin-top:16px">
+          <h3>Comparaison visuelle</h3>
+          <div class="chart-wrap tall"><canvas id="compareChart"></canvas></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <p class="footnote">
+  <p class="footnote" style="margin-top:24px; max-width:900px">
     Modèle simplifié à visée pédagogique. Les cotisations sociales du président de SASU
     varient selon le niveau de salaire (tranches PASS, AGIRC-ARRCO, prévoyance) ;
     les taux 42% / 22% sont des moyennes courantes. La CSG déductible sur dividendes
     (option barème) est reportée sur l'IR de l'année suivante — simplifiée ici.
-    Vérifiez toujours avec un expert-comptable avant de prendre une décision.
+    Vérifiez toujours avec un expert-comptable avant toute décision réelle.
   </p>
 </div>
 
+<div class="toast" id="toast">Action effectuée</div>
+
 <script>
 // ============================================================
-//  CONSTANTS — French tax parameters 2025 (revenus 2024)
+//  TAX PARAMETERS — France 2025 (revenus 2024)
 // ============================================================
 const PARAMS = {
-  // Corporate income tax
-  IS_REDUCED_RATE: 0.15,
-  IS_REDUCED_LIMIT: 42500,
-  IS_NORMAL_RATE: 0.25,
-
-  // Social charges on president's salary (assimilé salarié)
-  EMPLOYER_CHARGES_RATE: 0.42,    // ~42% du brut
-  EMPLOYEE_CHARGES_RATE: 0.22,    // ~22% du brut
-  // Net taxable salary = gross - cotisations déductibles + CSG/CRDS non déductible
-  // Approximation: ~0.81 × brut
+  IS_REDUCED_RATE: 0.15, IS_REDUCED_LIMIT: 42500, IS_NORMAL_RATE: 0.25,
+  EMPLOYER_CHARGES_RATE: 0.42, EMPLOYEE_CHARGES_RATE: 0.22,
   NET_TAXABLE_SALARY_RATIO: 0.81,
-  PRO_ABATEMENT_RATE: 0.10,
-  PRO_ABATEMENT_CAP: 14171,
-  PRO_ABATEMENT_MIN: 495,
-
-  // Dividends
-  PFU_TOTAL: 0.30,
-  PFU_IR: 0.128,
-  PFU_PS: 0.172,
-  DIVIDEND_PS: 0.172,
-  DIVIDEND_BAREME_ABATEMENT: 0.40,
-  CSG_DEDUCTIBLE_DIVIDENDS: 0.068, // reportée - approximée
-
-  // Mère-fille (holding)
-  MERE_FILLE_QUOTE_PART: 0.05,
-  MERE_FILLE_EFFECTIVE: 0.05 * 0.25, // 1.25%
-
-  // Income tax brackets 2025 (per part)
+  PRO_ABATEMENT_RATE: 0.10, PRO_ABATEMENT_CAP: 14171, PRO_ABATEMENT_MIN: 495,
+  PFU_TOTAL: 0.30, PFU_IR: 0.128, PFU_PS: 0.172,
+  DIVIDEND_PS: 0.172, DIVIDEND_BAREME_ABATEMENT: 0.40,
+  MERE_FILLE_EFFECTIVE: 0.05 * 0.25,
   IR_BRACKETS: [
     { upTo: 11497,  rate: 0.00 },
     { upTo: 29315,  rate: 0.11 },
@@ -286,7 +410,7 @@ const PARAMS = {
 };
 
 // ============================================================
-//  CORE TAX FUNCTIONS
+//  CALCULATION ENGINE
 // ============================================================
 function computeIS(profit) {
   if (profit <= 0) return 0;
@@ -299,9 +423,7 @@ function computeIRBareme(taxablePerPart) {
   if (taxablePerPart <= 0) return 0;
   let tax = 0, prev = 0;
   for (const b of PARAMS.IR_BRACKETS) {
-    if (taxablePerPart > prev) {
-      tax += (Math.min(taxablePerPart, b.upTo) - prev) * b.rate;
-    }
+    if (taxablePerPart > prev) tax += (Math.min(taxablePerPart, b.upTo) - prev) * b.rate;
     prev = b.upTo;
     if (taxablePerPart <= prev) break;
   }
@@ -310,9 +432,8 @@ function computeIRBareme(taxablePerPart) {
 
 function familyParts(marital, children) {
   let parts = marital === 'married' ? 2 : 1;
-  // Quotient familial: +0.5 each for first 2 children, +1 each beyond
   if (children <= 2) parts += children * 0.5;
-  else parts += 1 + (children - 2) * 1.0;
+  else parts += 1 + (children - 2);
   return parts;
 }
 
@@ -322,8 +443,8 @@ function computeIRWithCap(taxableIncome, marital, children) {
   const partsBase = marital === 'married' ? 2 : 1;
   const irAll = computeIRBareme(taxableIncome / partsAll) * partsAll;
   const irBase = computeIRBareme(taxableIncome / partsBase) * partsBase;
-  const halfPartsForChildren = (partsAll - partsBase) * 2;
-  const cap = halfPartsForChildren * PARAMS.QF_HALF_PART_CAP;
+  const halfPartsKids = (partsAll - partsBase) * 2;
+  const cap = halfPartsKids * PARAMS.QF_HALF_PART_CAP;
   const reduction = irBase - irAll;
   if (reduction > cap) return irBase - cap;
   return irAll;
@@ -337,17 +458,10 @@ function applyProAbatement(grossTaxable) {
   return Math.max(0, grossTaxable - ab);
 }
 
-// ============================================================
-//  MAIN MODEL: full company → owner waterfall
-// ============================================================
 function calculate(input) {
-  const {
-    revenue, opex, cfe, grossSalary,
-    divToOwnerPct, divToHoldingPct,
-    dividendOption, marital, children, otherIncome,
-  } = input;
+  const { revenue, opex, cfe, grossSalary,
+    divToOwnerPct, divToHoldingPct, dividendOption, marital, children, otherIncome } = input;
 
-  // ---- 1. Société ----
   const employerCharges = grossSalary * PARAMS.EMPLOYER_CHARGES_RATE;
   const employeeCharges = grossSalary * PARAMS.EMPLOYEE_CHARGES_RATE;
   const totalSalaryCost = grossSalary + employerCharges;
@@ -356,137 +470,198 @@ function calculate(input) {
   const profitAfterIS = ebit - is;
   const distributable = Math.max(0, profitAfterIS);
 
-  // ---- 2. Distribution ----
-  const ownerPctRaw  = Math.max(0, Math.min(100, divToOwnerPct));
-  const holdingPctRaw = Math.max(0, Math.min(100, divToHoldingPct));
-  // If sum > 100, normalize proportionally
-  let ownerPct = ownerPctRaw, holdingPct = holdingPctRaw;
+  let ownerPct = Math.max(0, Math.min(100, divToOwnerPct));
+  let holdingPct = Math.max(0, Math.min(100, divToHoldingPct));
   if (ownerPct + holdingPct > 100) {
-    const scale = 100 / (ownerPct + holdingPct);
-    ownerPct *= scale; holdingPct *= scale;
+    const k = 100 / (ownerPct + holdingPct); ownerPct *= k; holdingPct *= k;
   }
   const reservesPct = 100 - ownerPct - holdingPct;
-  const divToOwnerGross   = distributable * ownerPct / 100;
+  const divToOwnerGross = distributable * ownerPct / 100;
   const divToHoldingGross = distributable * holdingPct / 100;
-  const reserves          = distributable * reservesPct / 100;
-
-  // Holding (mère-fille)
+  const reserves = distributable * reservesPct / 100;
   const holdingTax = divToHoldingGross * PARAMS.MERE_FILLE_EFFECTIVE;
   const holdingNet = divToHoldingGross - holdingTax;
 
-  // ---- 3. Salaire personnel ----
-  const netSalaryCash    = grossSalary - employeeCharges;            // approx
+  const netSalaryCash = grossSalary - employeeCharges;
   const netSalaryTaxable = grossSalary * PARAMS.NET_TAXABLE_SALARY_RATIO;
   const salaryAfterAbatement = applyProAbatement(netSalaryTaxable);
 
-  // ---- 4. Dividendes — fiscalité ----
-  let dividendIRPart = 0;       // part imposée au barème (si option barème)
-  let dividendPS     = 0;
-  let dividendFlatTax = 0;
+  let dividendIRPart = 0, dividendPS = 0, dividendFlatTax = 0;
   if (dividendOption === 'pfu') {
     dividendFlatTax = divToOwnerGross * PARAMS.PFU_TOTAL;
   } else {
-    dividendPS    = divToOwnerGross * PARAMS.DIVIDEND_PS;
+    dividendPS = divToOwnerGross * PARAMS.DIVIDEND_PS;
     dividendIRPart = divToOwnerGross * (1 - PARAMS.DIVIDEND_BAREME_ABATEMENT);
   }
-
-  // ---- 5. IR du foyer ----
-  // Base barème = salaire après abattement + dividendes (si barème) + autres revenus
   const irBase = salaryAfterAbatement + dividendIRPart + otherIncome;
   const ir = computeIRWithCap(irBase, marital, children);
-
-  // Allocation IR aux différentes sources (proportionnelle)
   let irOnSalary = 0, irOnDividends = 0, irOnOther = 0;
   if (irBase > 0) {
-    irOnSalary    = ir * salaryAfterAbatement / irBase;
+    irOnSalary = ir * salaryAfterAbatement / irBase;
     irOnDividends = ir * dividendIRPart / irBase;
-    irOnOther     = ir * otherIncome / irBase;
+    irOnOther = ir * otherIncome / irBase;
   }
 
-  // ---- 6. Net du dirigeant ----
-  const netFromSalary    = netSalaryCash - irOnSalary;
-  const dividendNetCash  = dividendOption === 'pfu'
+  const netFromSalary = netSalaryCash - irOnSalary;
+  const dividendNetCash = dividendOption === 'pfu'
     ? divToOwnerGross - dividendFlatTax
     : divToOwnerGross - dividendPS - irOnDividends;
   const ownerNet = netFromSalary + dividendNetCash;
 
-  // ---- 7. Totaux ----
-  const totalSocial = employerCharges + employeeCharges + dividendPS;
-  const totalIR     = ir;  // includes salary + dividend (barème) parts
-  const totalDividendTax = dividendOption === 'pfu' ? dividendFlatTax : (dividendPS + irOnDividends);
-  const totalCorpTax = is + holdingTax;
-  const totalTaxAndCharges = totalCorpTax + totalSocial + (dividendOption === 'pfu' ? dividendFlatTax : (dividendPS + irOnDividends)) + (irOnSalary);
+  const totalDivTax = dividendOption === 'pfu' ? dividendFlatTax : (dividendPS + irOnDividends);
+  const totalTaxAndCharges = is + holdingTax + employerCharges + employeeCharges
+    + irOnSalary + totalDivTax;
   const totalValue = ownerNet + holdingNet + reserves;
-  const effectiveRate = revenue > 0 ? (revenue - opex - cfe - totalValue) / (revenue - opex - cfe) : 0;
+  const valueAdded = revenue - opex - cfe;
+  const effectiveRate = valueAdded > 0 ? (valueAdded - totalValue) / valueAdded : 0;
 
   return {
-    // société
     revenue, opex, cfe, grossSalary, employerCharges, employeeCharges, totalSalaryCost,
-    ebit, is, profitAfterIS,
-    // distribution
-    distributable, divToOwnerGross, divToHoldingGross, reserves,
-    holdingTax, holdingNet,
-    // owner salary
+    ebit, is, profitAfterIS, distributable,
+    divToOwnerGross, divToHoldingGross, reserves, holdingTax, holdingNet,
     netSalaryCash, netSalaryTaxable, salaryAfterAbatement,
-    // dividendes
     dividendOption, dividendFlatTax, dividendPS, dividendIRPart, dividendNetCash,
-    // IR
-    ir, irOnSalary, irOnDividends, irOnOther,
+    ir, irOnSalary, irOnDividends, irOnOther, totalDivTax,
     parts: familyParts(marital, children),
-    // résultats
-    netFromSalary, ownerNet, totalSocial, totalCorpTax, totalIR,
-    totalDividendTax, totalTaxAndCharges, totalValue, effectiveRate,
+    netFromSalary, ownerNet, totalTaxAndCharges, totalValue, effectiveRate,
   };
 }
 
 // ============================================================
-//  UI / RENDERING
+//  STATE & PERSISTENCE
 // ============================================================
-const fmt = (v, opts={}) => new Intl.NumberFormat('fr-FR', {
-  style: 'currency', currency: 'EUR', maximumFractionDigits: 0, ...opts
+const state = {
+  dividendOption: 'pfu',
+  marital: 'single',
+  scenarios: [],   // {name, inputs, result}
+  theme: 'dark',
+};
+
+const fmt = v => new Intl.NumberFormat('fr-FR', {
+  style: 'currency', currency: 'EUR', maximumFractionDigits: 0
 }).format(v || 0);
 const pct = v => (v * 100).toFixed(1) + '%';
 
 function readInputs() {
   const num = id => parseFloat(document.getElementById(id).value) || 0;
   return {
-    revenue: num('revenue'),
-    opex: num('opex'),
-    cfe: num('cfe'),
+    revenue: num('revenue'), opex: num('opex'), cfe: num('cfe'),
     grossSalary: num('grossSalary'),
-    divToOwnerPct: num('divToOwnerPct'),
-    divToHoldingPct: num('divToHoldingPct'),
-    dividendOption: state.dividendOption,
-    marital: state.marital,
+    divToOwnerPct: num('divToOwnerPct'), divToHoldingPct: num('divToHoldingPct'),
+    dividendOption: state.dividendOption, marital: state.marital,
     children: parseInt(document.getElementById('children').value) || 0,
     otherIncome: num('otherIncome'),
   };
 }
 
-const state = { dividendOption: 'pfu', marital: 'single' };
+function applyInputs(inputs) {
+  for (const k of ['revenue','opex','cfe','grossSalary','divToOwnerPct','divToHoldingPct','children','otherIncome']) {
+    if (inputs[k] !== undefined) document.getElementById(k).value = inputs[k];
+  }
+  if (inputs.dividendOption) {
+    state.dividendOption = inputs.dividendOption;
+    syncToggleGroup('dividendOption', inputs.dividendOption);
+  }
+  if (inputs.marital) {
+    state.marital = inputs.marital;
+    syncToggleGroup('marital', inputs.marital);
+  }
+}
+
+function syncToggleGroup(target, value) {
+  document.querySelectorAll(`button[data-target="${target}"]`).forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.value === value);
+  });
+}
+
+// URL hash sync — encode inputs as URL-safe base64 JSON
+function encodeStateToHash() {
+  const inputs = readInputs();
+  const json = JSON.stringify(inputs);
+  return 's=' + btoa(encodeURIComponent(json));
+}
+function decodeHashToInputs() {
+  if (!location.hash) return null;
+  try {
+    const m = location.hash.match(/s=([^&]+)/);
+    if (!m) return null;
+    return JSON.parse(decodeURIComponent(atob(m[1])));
+  } catch (e) { return null; }
+}
+
+// localStorage scenarios
+const SCENARIO_KEY = 'sasu-optimizer-scenarios-v1';
+function loadScenarios() {
+  try { state.scenarios = JSON.parse(localStorage.getItem(SCENARIO_KEY) || '[]'); }
+  catch (e) { state.scenarios = []; }
+}
+function saveScenarios() {
+  localStorage.setItem(SCENARIO_KEY, JSON.stringify(state.scenarios));
+}
+
+// Theme
+function applyTheme(t) {
+  state.theme = t;
+  document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : '');
+  localStorage.setItem('sasu-optimizer-theme', t);
+  // re-render charts to update colors
+  if (charts.donut) updateCharts(currentResult, currentInputs);
+}
+function loadTheme() {
+  const saved = localStorage.getItem('sasu-optimizer-theme') || 'dark';
+  applyTheme(saved);
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ============================================================
+//  RENDERING
+// ============================================================
+let currentResult = null, currentInputs = null;
+const charts = { donut: null, curve: null, curve2: null, stacked: null, compare: null };
+
+function getThemeColors() {
+  const styles = getComputedStyle(document.documentElement);
+  return {
+    text: styles.getPropertyValue('--text').trim() || '#e6e9ef',
+    muted: styles.getPropertyValue('--muted').trim() || '#98a2b3',
+    border: styles.getPropertyValue('--border').trim() || '#2a2f3a',
+    panel: styles.getPropertyValue('--panel').trim(),
+    accent: styles.getPropertyValue('--accent').trim() || '#4f8cff',
+    accent2: styles.getPropertyValue('--accent-2').trim() || '#20c997',
+    good: styles.getPropertyValue('--good').trim() || '#2ecc71',
+    bad: styles.getPropertyValue('--bad').trim() || '#ff6b6b',
+    warn: styles.getPropertyValue('--warn').trim() || '#ffb020',
+  };
+}
 
 function render() {
   const inputs = readInputs();
   const r = calculate(inputs);
+  currentResult = r; currentInputs = inputs;
 
   // KPIs
   document.getElementById('kpi-owner-net').textContent = fmt(r.ownerNet);
   document.getElementById('kpi-owner-net-sub').textContent =
-    `${fmt(r.netFromSalary)} salaire + ${fmt(r.dividendNetCash)} dividendes`;
+    `${fmt(r.netFromSalary)} salaire + ${fmt(r.dividendNetCash)} div.`;
   document.getElementById('kpi-holding').textContent = fmt(r.holdingNet);
   document.getElementById('kpi-total-tax').textContent = fmt(r.totalTaxAndCharges);
-  document.getElementById('kpi-pressure').textContent =
-    `taux global ${pct(r.effectiveRate)} sur la valeur ajoutée`;
+  document.getElementById('kpi-pressure').textContent = `taux global ${pct(r.effectiveRate)} sur valeur ajoutée`;
   document.getElementById('kpi-total-value').textContent = fmt(r.totalValue);
 
   // Slider labels
   document.getElementById('divToOwnerVal').textContent = inputs.divToOwnerPct + '%';
   document.getElementById('divToHoldingVal').textContent = inputs.divToHoldingPct + '%';
+  document.getElementById('grossSalaryHint').textContent =
+    `coût ${fmt(r.totalSalaryCost)} · net ${fmt(r.netSalaryCash)}`;
 
-  // Waterfall
-  renderWaterfall(r);
-
-  // Company table
+  // Tables
   document.getElementById('company-table').innerHTML = `
     <tbody>
       <tr><td>Chiffre d'affaires HT</td><td class="num">${fmt(r.revenue)}</td></tr>
@@ -498,13 +673,12 @@ function render() {
       <tr class="neg"><td>− Impôt sur les Sociétés</td><td class="num">−${fmt(r.is)}</td></tr>
       <tr class="subtotal"><td>= Résultat distribuable</td><td class="num">${fmt(r.distributable)}</td></tr>
       <tr><td>→ Dividendes au président</td><td class="num">${fmt(r.divToOwnerGross)}</td></tr>
-      <tr><td>→ Dividendes vers holding (avant IS mère-fille)</td><td class="num">${fmt(r.divToHoldingGross)}</td></tr>
+      <tr><td>→ Dividendes vers holding</td><td class="num">${fmt(r.divToHoldingGross)}</td></tr>
       <tr class="neg"><td>&nbsp;&nbsp;− IS holding (1,25%)</td><td class="num">−${fmt(r.holdingTax)}</td></tr>
       <tr class="pos"><td>&nbsp;&nbsp;= Net en holding</td><td class="num">${fmt(r.holdingNet)}</td></tr>
       <tr><td>→ Mis en réserve dans la SASU</td><td class="num">${fmt(r.reserves)}</td></tr>
     </tbody>`;
 
-  // Personal table
   const dividendDetail = r.dividendOption === 'pfu'
     ? `<tr class="neg"><td>− Flat tax PFU 30%</td><td class="num">−${fmt(r.dividendFlatTax)}</td></tr>`
     : `<tr class="neg"><td>− Prélèvements sociaux 17,2%</td><td class="num">−${fmt(r.dividendPS)}</td></tr>
@@ -512,108 +686,324 @@ function render() {
   document.getElementById('personal-table').innerHTML = `
     <tbody>
       <tr><th colspan="2">Salaire</th></tr>
-      <tr><td>Salaire brut</td><td class="num">${fmt(r.grossSalary)}</td></tr>
+      <tr><td>Brut</td><td class="num">${fmt(r.grossSalary)}</td></tr>
       <tr class="neg"><td>− Cotisations salariales (~22%)</td><td class="num">−${fmt(r.employeeCharges)}</td></tr>
       <tr class="subtotal"><td>= Net en poche (avant IR)</td><td class="num">${fmt(r.netSalaryCash)}</td></tr>
-      <tr><td>Net imposable (avant abattement 10%)</td><td class="num">${fmt(r.netSalaryTaxable)}</td></tr>
-      <tr><td>Imposable IR (après abattement)</td><td class="num">${fmt(r.salaryAfterAbatement)}</td></tr>
+      <tr><td>Net imposable</td><td class="num">${fmt(r.netSalaryTaxable)}</td></tr>
+      <tr><td>Imposable IR (après abattement 10%)</td><td class="num">${fmt(r.salaryAfterAbatement)}</td></tr>
       <tr class="neg"><td>− IR sur salaire (quote-part)</td><td class="num">−${fmt(r.irOnSalary)}</td></tr>
       <tr class="pos"><td><b>= Net salarié final</b></td><td class="num"><b>${fmt(r.netFromSalary)}</b></td></tr>
-
       <tr><th colspan="2">Dividendes (${r.dividendOption === 'pfu' ? 'PFU 30%' : 'Barème + abattement 40%'})</th></tr>
-      <tr><td>Dividendes bruts perçus</td><td class="num">${fmt(r.divToOwnerGross)}</td></tr>
+      <tr><td>Bruts perçus</td><td class="num">${fmt(r.divToOwnerGross)}</td></tr>
       ${dividendDetail}
       <tr class="pos"><td><b>= Dividendes nets</b></td><td class="num"><b>${fmt(r.dividendNetCash)}</b></td></tr>
-
       <tr><th colspan="2">Foyer fiscal</th></tr>
-      <tr><td>Parts fiscales (QF)</td><td class="num">${r.parts.toFixed(1)}</td></tr>
-      <tr><td>IR total foyer (avec autres revenus)</td><td class="num">${fmt(r.ir)}</td></tr>
+      <tr><td>Parts (QF)</td><td class="num">${r.parts.toFixed(1)}</td></tr>
+      <tr><td>IR total foyer</td><td class="num">${fmt(r.ir)}</td></tr>
       <tr class="total pos"><td>Net en poche du dirigeant</td><td class="num">${fmt(r.ownerNet)}</td></tr>
     </tbody>`;
 
+  // Waterfall
+  renderWaterfall(r);
+  // Charts
+  updateCharts(r, inputs);
+  // Optimization scan
   renderOptimization(inputs);
+  // Scenario list & compare
+  renderScenarios();
+
+  // Update hash
+  history.replaceState(null, '', '#' + encodeStateToHash());
 }
 
-// Waterfall — visualizes where every euro goes
 function renderWaterfall(r) {
-  const totalIR = r.irOnSalary + r.irOnDividends; // exclude others (kept separate)
-  const dividendTaxOwner = r.dividendOption === 'pfu' ? r.dividendFlatTax : (r.dividendPS + r.irOnDividends);
   const items = [
-    { lbl: "Chiffre d'affaires", amt: r.revenue, color: '#4f8cff' },
-    { lbl: "− Charges + CFE",   amt: -(r.opex + r.cfe), color: '#888' },
-    { lbl: "− Cotis. patronales", amt: -r.employerCharges, color: '#ff6b6b' },
-    { lbl: "− IS société",       amt: -r.is, color: '#ff6b6b' },
-    { lbl: "− IS mère-fille",    amt: -r.holdingTax, color: '#ff8a6b' },
+    { lbl: "Chiffre d'affaires", amt: r.revenue, color: 'var(--accent)' },
+    { lbl: "− Charges + CFE", amt: -(r.opex + r.cfe), color: 'var(--muted)' },
+    { lbl: "− Cotis. patronales", amt: -r.employerCharges, color: 'var(--bad)' },
+    { lbl: "− IS société", amt: -r.is, color: 'var(--bad)' },
+    { lbl: "− IS mère-fille", amt: -r.holdingTax, color: '#ff8a6b' },
     { lbl: "− Cotis. salariales", amt: -r.employeeCharges, color: '#ffa46b' },
-    { lbl: "− IR salaire",       amt: -r.irOnSalary, color: '#ffb020' },
-    { lbl: "− Taxe dividendes",  amt: -dividendTaxOwner, color: '#ffb020' },
-    { lbl: "= Réserves SASU",    amt: r.reserves, color: '#9da6c5', positive: true },
-    { lbl: "= Capital holding",  amt: r.holdingNet, color: '#20c997', positive: true },
-    { lbl: "= Net dirigeant",    amt: r.ownerNet, color: '#2ecc71', positive: true },
+    { lbl: "− IR salaire", amt: -r.irOnSalary, color: 'var(--warn)' },
+    { lbl: "− Taxe dividendes", amt: -r.totalDivTax, color: 'var(--warn)' },
+    { lbl: "= Réserves SASU", amt: r.reserves, color: '#9da6c5', positive: true },
+    { lbl: "= Capital holding", amt: r.holdingNet, color: 'var(--accent-2)', positive: true },
+    { lbl: "= Net dirigeant", amt: r.ownerNet, color: 'var(--good)', positive: true },
   ];
-  const maxAbs = Math.max(...items.map(i => Math.abs(i.amt)), 1);
-  const html = items.map(i => `
+  const max = Math.max(...items.map(i => Math.abs(i.amt)), 1);
+  document.getElementById('waterfall').innerHTML = items.map(i => `
     <div class="wf-row">
       <div class="lbl">${i.lbl}</div>
-      <div class="bar"><div class="bar-fill" style="width:${(Math.abs(i.amt)/maxAbs*100).toFixed(1)}%; background:${i.color}"></div></div>
+      <div class="bar"><div class="bar-fill" style="width:${(Math.abs(i.amt)/max*100).toFixed(1)}%; background:${i.color}"></div></div>
       <div class="amt" style="color:${i.amt < 0 ? 'var(--bad)' : (i.positive ? 'var(--good)' : 'var(--text)')}">${fmt(i.amt)}</div>
     </div>`).join('');
-  document.getElementById('waterfall').innerHTML = html;
 }
 
-// Optimization scan — find best gross salary for the same total budget
-function renderOptimization(baseInputs) {
-  const budget = baseInputs.revenue - baseInputs.opex - baseInputs.cfe;
-  if (budget <= 0) { document.getElementById('optimization').innerHTML = ''; return; }
-  // Scan gross salaries from 0 to ~budget/1.42 (max payable)
-  const maxGross = Math.max(0, budget / (1 + PARAMS.EMPLOYER_CHARGES_RATE));
-  const samples = [];
-  const step = Math.max(2000, Math.round(maxGross / 25 / 1000) * 1000);
-  for (let g = 0; g <= maxGross; g += step) {
-    const r = calculate({ ...baseInputs, grossSalary: g });
-    samples.push({ gross: g, value: r.totalValue, owner: r.ownerNet, holding: r.holdingNet, reserves: r.reserves });
+// ============================================================
+//  CHARTS
+// ============================================================
+function updateCharts(r, inputs) {
+  const C = getThemeColors();
+  Chart.defaults.color = C.muted;
+  Chart.defaults.borderColor = C.border;
+  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+
+  // ---- Donut: where every euro of CA goes ----
+  const donutData = {
+    labels: ['Charges + CFE', 'Cotis. patronales', 'IS société', 'IS holding',
+             'Cotis. salariales', 'IR salaire', 'Taxe dividendes',
+             'Réserves SASU', 'Capital holding', 'Net dirigeant'],
+    values: [r.opex + r.cfe, r.employerCharges, r.is, r.holdingTax,
+             r.employeeCharges, r.irOnSalary, r.totalDivTax,
+             r.reserves, r.holdingNet, r.ownerNet],
+    colors: ['#888', C.bad, C.bad, '#ff8a6b', '#ffa46b', C.warn, C.warn,
+             '#9da6c5', C.accent2, C.good],
+  };
+  upsertChart('donut', 'donutChart', {
+    type: 'doughnut',
+    data: {
+      labels: donutData.labels,
+      datasets: [{ data: donutData.values, backgroundColor: donutData.colors,
+        borderColor: C.panel, borderWidth: 2 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.label}: ${fmt(ctx.parsed)} (${pct(ctx.parsed / r.revenue)})`
+          }
+        }
+      },
+      cutout: '55%',
+    }
+  });
+
+  // ---- Curve: salary → total value & owner net ----
+  const samples = scanSalary(inputs);
+  const curveData = {
+    labels: samples.map(s => Math.round(s.gross / 1000) + 'k'),
+    datasets: [
+      { label: 'Valeur totale', data: samples.map(s => s.value),
+        borderColor: C.good, backgroundColor: C.good + '22', tension: 0.25, fill: false, pointRadius: 0 },
+      { label: 'Net dirigeant', data: samples.map(s => s.owner),
+        borderColor: C.accent, backgroundColor: C.accent + '22', tension: 0.25, fill: false, pointRadius: 0 },
+      { label: 'Capital holding', data: samples.map(s => s.holding),
+        borderColor: C.accent2, backgroundColor: C.accent2 + '22', tension: 0.25, fill: false, pointRadius: 0,
+        borderDash: [4, 3] },
+    ],
+  };
+  // Mark current salary point
+  const idx = samples.findIndex(s => s.gross >= inputs.grossSalary);
+  if (idx >= 0) {
+    curveData.datasets[0].pointRadius = curveData.labels.map((_, i) => i === idx ? 6 : 0);
+    curveData.datasets[0].pointBackgroundColor = curveData.labels.map((_, i) => i === idx ? C.good : C.good);
   }
-  // Add the user's current salary too
-  const cur = calculate(baseInputs);
-  samples.push({ gross: baseInputs.grossSalary, value: cur.totalValue, owner: cur.ownerNet, holding: cur.holdingNet, reserves: cur.reserves, isCurrent: true });
-  // Find best
-  const best = samples.reduce((a, b) => b.value > a.value ? b : a);
-  // Show 6 representative points
-  samples.sort((a, b) => a.gross - b.gross);
+  const curveOpts = {
+    type: 'line',
+    data: curveData,
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: items => 'Salaire brut: ' + items[0].label,
+            label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y)
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Salaire brut (k€)' } },
+        y: { ticks: { callback: v => fmt(v) } },
+      },
+    }
+  };
+  upsertChart('curve', 'curveChart', JSON.parse(JSON.stringify(curveOpts)));
+  upsertChart('curve2', 'curveChart2', curveOpts);
+
+  // ---- Stacked bar: tax breakdown components ----
+  upsertChart('stacked', 'stackedBar', {
+    type: 'bar',
+    data: {
+      labels: ['Société', 'Salaire', 'Dividendes', 'Holding'],
+      datasets: [
+        { label: 'IS / IS mère-fille', data: [r.is, 0, 0, r.holdingTax], backgroundColor: C.bad },
+        { label: 'Cotis. patronales', data: [0, r.employerCharges, 0, 0], backgroundColor: '#ff8a6b' },
+        { label: 'Cotis. salariales', data: [0, r.employeeCharges, 0, 0], backgroundColor: '#ffa46b' },
+        { label: 'IR salaire',        data: [0, r.irOnSalary, 0, 0],      backgroundColor: C.warn },
+        { label: 'Taxe dividendes',   data: [0, 0, r.totalDivTax, 0],     backgroundColor: '#ffd060' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } }
+      },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, ticks: { callback: v => fmt(v) } },
+      },
+    }
+  });
+
+  // ---- Compare chart ----
+  renderCompareChart();
+}
+
+function upsertChart(key, canvasId, config) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (charts[key]) { charts[key].destroy(); }
+  charts[key] = new Chart(canvas, config);
+}
+
+function scanSalary(inputs) {
+  const budget = inputs.revenue - inputs.opex - inputs.cfe;
+  const maxGross = Math.max(0, budget / (1 + PARAMS.EMPLOYER_CHARGES_RATE));
+  const stepCount = 30;
+  const step = Math.max(1000, Math.round(maxGross / stepCount / 1000) * 1000);
+  const samples = [];
+  for (let g = 0; g <= maxGross; g += step) {
+    const r = calculate({ ...inputs, grossSalary: g });
+    samples.push({ gross: g, value: r.totalValue, owner: r.ownerNet,
+      holding: r.holdingNet, reserves: r.reserves });
+  }
+  return samples;
+}
+
+function renderOptimization(inputs) {
+  const samples = scanSalary(inputs);
+  if (!samples.length) { document.getElementById('optimization').innerHTML = ''; return; }
+  // Refine around best with 1k steps
+  const rough = samples.reduce((a, b) => b.value > a.value ? b : a);
+  const refineStart = Math.max(0, rough.gross - 5000);
+  const refineEnd = rough.gross + 5000;
+  let best = rough;
+  for (let g = refineStart; g <= refineEnd; g += 500) {
+    const r = calculate({ ...inputs, grossSalary: g });
+    if (r.totalValue > best.value) best = { gross: g, value: r.totalValue, owner: r.ownerNet, holding: r.holdingNet, reserves: r.reserves };
+  }
+  const cur = calculate(inputs);
   const picks = [
-    samples[0],
-    samples[Math.floor(samples.length * 0.2)],
-    samples[Math.floor(samples.length * 0.4)],
-    samples[Math.floor(samples.length * 0.6)],
-    samples[Math.floor(samples.length * 0.8)],
+    samples[0], samples[Math.floor(samples.length * 0.25)],
+    samples[Math.floor(samples.length * 0.5)],
+    samples[Math.floor(samples.length * 0.75)],
     samples[samples.length - 1],
+    { gross: inputs.grossSalary, value: cur.totalValue, owner: cur.ownerNet, holding: cur.holdingNet, reserves: cur.reserves, isCurrent: true },
     best,
   ].filter((v, i, a) => v && a.findIndex(x => x.gross === v.gross) === i);
-  document.getElementById('optimization').innerHTML = picks.map(s => `
-    <div class="opt-card ${s.gross === best.gross ? 'best' : ''}" data-gross="${s.gross}">
-      <div class="small">Salaire brut${s.gross === best.gross ? ' · MEILLEUR' : ''}</div>
+  picks.sort((a, b) => a.gross - b.gross);
+  document.getElementById('optimization').innerHTML = picks.map(s => {
+    const isBest = s.gross === best.gross;
+    return `<div class="opt-card ${isBest ? 'best' : ''}" data-gross="${s.gross}">
+      <div class="small">Salaire brut${isBest ? ' · OPTIMUM' : ''}${s.isCurrent && !isBest ? ' · ACTUEL' : ''}</div>
       <div class="big">${fmt(s.gross)}</div>
       <hr>
       <div class="small">Valeur totale</div>
-      <div class="big" style="color:${s.gross === best.gross ? 'var(--accent-2)' : 'var(--text)'}">${fmt(s.value)}</div>
+      <div class="big" style="color:${isBest ? 'var(--accent-2)' : 'var(--text)'}">${fmt(s.value)}</div>
       <div class="small" style="margin-top:4px">
         Net: ${fmt(s.owner)}<br>
         Holding: ${fmt(s.holding)}<br>
         Réserves: ${fmt(s.reserves)}
       </div>
-    </div>
-  `).join('');
-  // Make cards clickable to set salary
+    </div>`;
+  }).join('');
   document.querySelectorAll('.opt-card').forEach(card => {
     card.addEventListener('click', () => {
       document.getElementById('grossSalary').value = card.dataset.gross;
       render();
+      toast('Salaire appliqué : ' + fmt(parseFloat(card.dataset.gross)));
     });
   });
 }
 
 // ============================================================
-//  EVENT WIRING
+//  SCENARIOS
+// ============================================================
+function renderScenarios() {
+  const list = document.getElementById('scenario-list');
+  document.getElementById('scenario-count').textContent = state.scenarios.length || '';
+  if (!state.scenarios.length) {
+    list.innerHTML = `<p class="footnote">Aucun scénario sauvegardé. Configurez vos paramètres et cliquez sur "+ Scénario" en haut.</p>`;
+    return;
+  }
+  // Build comparison table
+  const rows = state.scenarios.map((s, i) => {
+    const r = s.result;
+    return `<div class="scenario-row">
+      <div>
+        <div class="name">${s.name}</div>
+        <div class="meta">CA ${fmt(s.inputs.revenue)} · brut ${fmt(s.inputs.grossSalary)} · ${s.inputs.dividendOption.toUpperCase()} · ${s.inputs.marital === 'married' ? 'marié' : 'célib.'} ${s.inputs.children}E</div>
+      </div>
+      <div style="text-align:right">
+        <div class="name">${fmt(r.totalValue)}</div>
+        <div class="meta">net ${fmt(r.ownerNet)} · hold. ${fmt(r.holdingNet)}</div>
+      </div>
+      <div style="display:flex; gap:4px">
+        <button data-act="load" data-i="${i}">Charger</button>
+        <button data-act="del" data-i="${i}">×</button>
+      </div>
+    </div>`;
+  }).join('');
+  list.innerHTML = rows;
+  list.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = +b.dataset.i;
+      if (b.dataset.act === 'load') {
+        applyInputs(state.scenarios[i].inputs);
+        render();
+        toast('Scénario "' + state.scenarios[i].name + '" chargé');
+      } else if (b.dataset.act === 'del') {
+        state.scenarios.splice(i, 1);
+        saveScenarios();
+        render();
+      }
+    });
+  });
+}
+
+function renderCompareChart() {
+  const C = getThemeColors();
+  const all = [...state.scenarios.map(s => ({ name: s.name, r: s.result })),
+               { name: 'Actuel', r: currentResult }];
+  const labels = all.map(s => s.name);
+  upsertChart('compare', 'compareChart', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Net dirigeant', data: all.map(s => s.r.ownerNet), backgroundColor: C.accent },
+        { label: 'Capital holding', data: all.map(s => s.r.holdingNet), backgroundColor: C.accent2 },
+        { label: 'Réserves SASU', data: all.map(s => s.r.reserves), backgroundColor: '#9da6c5' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y),
+            footer: items => {
+              const total = items.reduce((s, i) => s + i.parsed.y, 0);
+              return 'Total: ' + fmt(total);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, ticks: { callback: v => fmt(v) } },
+      },
+    }
+  });
+}
+
+// ============================================================
+//  EVENTS
 // ============================================================
 document.querySelectorAll('input').forEach(el => el.addEventListener('input', render));
 
@@ -621,12 +1011,51 @@ document.querySelectorAll('.toggle-group button').forEach(btn => {
   btn.addEventListener('click', () => {
     const target = btn.dataset.target;
     state[target] = btn.dataset.value;
-    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    syncToggleGroup(target, btn.dataset.value);
     render();
   });
 });
 
-// Initial render
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p =>
+      p.classList.toggle('active', p.dataset.panel === tab.dataset.panel));
+  });
+});
+
+document.getElementById('btn-save-scenario').addEventListener('click', () => {
+  const name = prompt('Nom du scénario ?', `Scénario ${state.scenarios.length + 1}`);
+  if (!name) return;
+  state.scenarios.push({ name, inputs: readInputs(), result: currentResult });
+  saveScenarios();
+  render();
+  toast('Scénario "' + name + '" sauvegardé');
+});
+
+document.getElementById('btn-share').addEventListener('click', async () => {
+  const url = location.origin + location.pathname + '#' + encodeStateToHash();
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Lien copié dans le presse-papier');
+  } catch (e) {
+    prompt('Copiez le lien :', url);
+  }
+});
+
+document.getElementById('btn-print').addEventListener('click', () => window.print());
+document.getElementById('btn-theme').addEventListener('click', () => {
+  applyTheme(state.theme === 'light' ? 'dark' : 'light');
+});
+
+// ============================================================
+//  BOOT
+// ============================================================
+loadScenarios();
+loadTheme();
+const fromHash = decodeHashToInputs();
+if (fromHash) applyInputs(fromHash);
 render();
 </script>
 </body>
